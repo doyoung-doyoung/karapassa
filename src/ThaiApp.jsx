@@ -358,8 +358,36 @@ const LS = {
   del: (key) => { try { localStorage.removeItem(key); } catch {} },
 };
 
-// 앱 버전 — 이 값을 올리면 기존 캐시 무효화 없이 마이그레이션만 수행
+// 앱 버전
 const APP_VERSION = "v2";
+
+// ─── Google Sheets API helpers ────────────────────────────
+const GS_URL = import.meta.env.VITE_GS_API || "";
+
+const gsLoad = async () => {
+  if (!GS_URL) return null;
+  try {
+    const res = await fetch(`${GS_URL}?t=${Date.now()}`, { redirect: "follow" });
+    const json = await res.json();
+    return json.ok ? json.data : null;
+  } catch { return null; }
+};
+
+const gsSave = (() => {
+  const timers = {};
+  return (key, value) => {
+    if (!GS_URL) return;
+    clearTimeout(timers[key]);
+    timers[key] = setTimeout(() => {
+      fetch(GS_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ key, value }),
+      }).catch(() => {});
+    }, 1500);
+  };
+})();
 
 export default function ThaiApp() {
   const [users, setUsers] = useState(() => LS.get("kp_users", [{id:"u1",name:"지노 대표님",ci:0}]));
@@ -386,6 +414,8 @@ export default function ThaiApp() {
   const [pinErr, setPinErr] = useState(false);
   const [tViewUid, setTViewUid] = useState("all");
   const [showLessonForm, setShowLessonForm] = useState(false);
+  const [loadingData, setLoadingData] = useState(!!GS_URL);
+  const [syncing, setSyncing] = useState(false);
 
   const timers = useRef([]);
 
@@ -550,15 +580,44 @@ export default function ThaiApp() {
     setNewUserName(""); setAddingUser(false);
   };
 
-  // ── localStorage 자동 저장 ──
-  useEffect(() => { LS.set("kp_users", users); }, [users]);
-  useEffect(() => { LS.set("kp_allData", allData); }, [allData]);
-  useEffect(() => { LS.set("kp_lessons", lessons); }, [lessons]);
+  // ── 앱 시작 시 Google Sheets에서 데이터 불러오기 ──
+  useEffect(() => {
+    if (!GS_URL) return;
+    setLoadingData(true);
+    gsLoad().then(data => {
+      if (data) {
+        if (data.kp_users)   { setUsers(data.kp_users);     LS.set("kp_users",   data.kp_users);   }
+        if (data.kp_allData) { setAllData(data.kp_allData); LS.set("kp_allData", data.kp_allData); }
+        if (data.kp_lessons) { setLessons(data.kp_lessons); LS.set("kp_lessons", data.kp_lessons); }
+      }
+    }).finally(() => setLoadingData(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── localStorage + Google Sheets 자동 저장 ──
+  const isFirstRender = useRef({ users: true, allData: true, lessons: true });
+  useEffect(() => {
+    if (isFirstRender.current.users) { isFirstRender.current.users = false; return; }
+    LS.set("kp_users", users);
+    setSyncing(true);
+    gsSave("kp_users", users);
+    setTimeout(() => setSyncing(false), 2000);
+  }, [users]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (isFirstRender.current.allData) { isFirstRender.current.allData = false; return; }
+    LS.set("kp_allData", allData);
+    gsSave("kp_allData", allData);
+  }, [allData]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (isFirstRender.current.lessons) { isFirstRender.current.lessons = false; return; }
+    LS.set("kp_lessons", lessons);
+    setSyncing(true);
+    gsSave("kp_lessons", lessons);
+    setTimeout(() => setSyncing(false), 2000);
+  }, [lessons]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 버전 마이그레이션 (앱 업데이트 시 1회 실행) ──
   useEffect(() => {
     if (LS.get("kp_app_version", "") === APP_VERSION) return;
-    // "크리스" → "지노 대표님" 이름 마이그레이션
     setUsers(prev => {
       const updated = prev.map(u => u.name === "크리스" ? {...u, name:"지노 대표님"} : u);
       LS.set("kp_users", updated);
@@ -653,6 +712,19 @@ export default function ThaiApp() {
     {id:"teacher",label:"선생님",icon:"ti-eye"},
   ];
 
+  // ────────── LOADING ──────────
+  if (loadingData) return (
+    <div style={{minHeight:"500px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 20px",gap:"16px"}}>
+      <p style={{fontSize:"32px",margin:0}}>🇹🇭</p>
+      <p style={{fontSize:"16px",fontWeight:500,margin:0}}>카라파싸</p>
+      <div style={{display:"flex",alignItems:"center",gap:"8px",color:"var(--color-text-secondary)",fontSize:"13px"}}>
+        <div style={{width:"16px",height:"16px",border:"2px solid #D85A30",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />
+        Google Sheets에서 불러오는 중...
+      </div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
   // ────────── USER SELECT ──────────
   if (!currentUserId) return (
     <div style={{minHeight:"500px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 20px"}}>
@@ -701,6 +773,13 @@ export default function ThaiApp() {
             </div>
           </div>
           <div style={{textAlign:"right"}}>
+            {GS_URL && (
+              <p style={{margin:"0 0 2px",fontSize:"10px",opacity:0.75,display:"flex",alignItems:"center",gap:"4px",justifyContent:"flex-end"}}>
+                {syncing
+                  ? <><div style={{width:"8px",height:"8px",border:"1.5px solid rgba(255,255,255,0.5)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /> 저장 중</>
+                  : <><span style={{fontSize:"8px"}}>●</span> 동기화됨</>}
+              </p>
+            )}
             <p style={{margin:0,fontSize:"11px",opacity:0.8}}>체크 완료</p>
             <p style={{margin:0,fontSize:"20px",fontWeight:500}}>{doneCount}<span style={{fontSize:"13px",opacity:0.7}}>/{totalChecks}</span></p>
           </div>
