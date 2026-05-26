@@ -351,16 +351,22 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
 }
 
 // ─── MAIN APP ────────────────────────────────────────────
+// ─── localStorage helpers ────────────────────────────────
+const LS = {
+  get: (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } },
+  set: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} },
+};
+
 export default function ThaiApp() {
-  const [users, setUsers] = useState([{id:"u1",name:"크리스",ci:0}]);
+  const [users, setUsers] = useState(() => LS.get("kp_users", [{id:"u1",name:"크리스",ci:0}]));
   const [currentUserId, setCurrentUserId] = useState(null);
   const [newUserName, setNewUserName] = useState("");
   const [addingUser, setAddingUser] = useState(false);
 
-  const [allData, setAllData] = useState({u1:{used:{},jokeUsed:{},gameHistory:[]}});
+  const [allData, setAllData] = useState(() => LS.get("kp_allData", {u1:{used:{},jokeUsed:{},gameHistory:[]}}));
   const [tab, setTab] = useState("learn");
   const [lessonKey, setLessonKey] = useState("5/23");
-  const [lessons, setLessons] = useState(INITIAL_LESSONS);
+  const [lessons, setLessons] = useState(() => LS.get("kp_lessons", INITIAL_LESSONS));
   const [idx, setIdx] = useState(0);
   const [kIdx, setKIdx] = useState(-1);
   const [speaking, setSpeaking] = useState(false);
@@ -538,6 +544,65 @@ export default function ThaiApp() {
     setUsers(p => [...p, {id, name:newUserName.trim(), ci:p.length % PALETTE.length}]);
     setAllData(p => ({...p, [id]: {used:{},jokeUsed:{},gameHistory:[]}}));
     setNewUserName(""); setAddingUser(false);
+  };
+
+  // ── localStorage 자동 저장 ──
+  useEffect(() => { LS.set("kp_users", users); }, [users]);
+  useEffect(() => { LS.set("kp_allData", allData); }, [allData]);
+  useEffect(() => { LS.set("kp_lessons", lessons); }, [lessons]);
+
+  // ── 엑셀(CSV) 내보내기 ──
+  const exportCSV = () => {
+    const rows = [["사용자","수업","유형","태국어","한국어","사용시간","상대방 답변","뜻"]];
+    users.forEach(u => {
+      const ud = allData[u.id] || {};
+      Object.entries(ud.used || {}).forEach(([lk, sentMap]) => {
+        const lesson = lessons[lk];
+        Object.entries(sentMap).forEach(([sid, rec]) => {
+          const sent = lesson?.sentences?.find(s => s.id === sid);
+          rows.push([u.name, lesson?.label||lk, "문장", sent?.thai||sid, sent?.korean||"", rec.time||"", rec.answer||"", rec.answerMeaning||""]);
+        });
+      });
+      Object.entries(ud.jokeUsed || {}).forEach(([lk, jokeMap]) => {
+        const lesson = lessons[lk];
+        Object.entries(jokeMap).forEach(([jid, rec]) => {
+          const joke = [...ALL_JOKES, ...(lesson?.lessonJokes||[])].find(j => j.id === jid);
+          rows.push([u.name, lesson?.label||lk, "농담", joke?.thai||jid, joke?.korean||"", rec.time||"", rec.answer||"", rec.answerMeaning||""]);
+        });
+      });
+      (ud.gameHistory || []).forEach(g => {
+        rows.push([u.name, lessons[g.lessonKey]?.label||g.lessonKey, "게임", `${g.score}/${g.total}점`, g.date, "", "", ""]);
+      });
+    });
+    const bom = "﻿";
+    const csv = bom + rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv;charset=utf-8"}));
+    a.download = `카라파싸_${new Date().toLocaleDateString("ko-KR").replace(/\. /g,"-").replace(".","")}_.csv`;
+    a.click();
+  };
+
+  // ── 수업별 데이터 삭제 ──
+  const deleteLesson = (lk) => {
+    if (!window.confirm(`"${lessons[lk]?.label || lk}" 수업 데이터를 모두 삭제할까요?`)) return;
+    setAllData(p => {
+      const next = {...p};
+      Object.keys(next).forEach(uid => {
+        const d = {...(next[uid] || {})};
+        d.used = {...(d.used||{})}; delete d.used[lk];
+        d.jokeUsed = {...(d.jokeUsed||{})}; delete d.jokeUsed[lk];
+        d.gameHistory = (d.gameHistory||[]).filter(g => g.lessonKey !== lk);
+        next[uid] = d;
+      });
+      return next;
+    });
+  };
+
+  const resetAll = () => {
+    if (!window.confirm("모든 학습 데이터를 초기화할까요? 이 작업은 되돌릴 수 없어요.")) return;
+    const blank = {};
+    users.forEach(u => { blank[u.id] = {used:{},jokeUsed:{},gameHistory:[]}; });
+    setAllData(blank);
   };
 
   // Clear entering/draft when tab or lesson changes to prevent stale state
@@ -896,10 +961,16 @@ export default function ThaiApp() {
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}}>
                 <h2 style={{margin:0,fontSize:"16px",fontWeight:500}}>선생님 대시보드</h2>
-                <button onClick={() => { setTeacher(false); setPin(""); setShowLessonForm(false); }}
-                  style={{background:"none",border:"none",cursor:"pointer",color:"var(--color-text-secondary)",fontSize:"12px",display:"flex",alignItems:"center",gap:"4px"}}>
-                  <i className="ti ti-lock" aria-hidden="true" /> 잠금
-                </button>
+                <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+                  <button onClick={exportCSV}
+                    style={{background:"#3B9E52",color:"#fff",border:"none",borderRadius:"var(--border-radius-md)",padding:"6px 12px",fontSize:"12px",cursor:"pointer",display:"flex",alignItems:"center",gap:"4px"}}>
+                    <i className="ti ti-file-spreadsheet" aria-hidden="true" /> 엑셀 다운로드
+                  </button>
+                  <button onClick={() => { setTeacher(false); setPin(""); setShowLessonForm(false); }}
+                    style={{background:"none",border:"none",cursor:"pointer",color:"var(--color-text-secondary)",fontSize:"12px",display:"flex",alignItems:"center",gap:"4px"}}>
+                    <i className="ti ti-lock" aria-hidden="true" /> 잠금
+                  </button>
+                </div>
               </div>
 
               {/* 유저 탭 */}
@@ -1066,6 +1137,39 @@ export default function ThaiApp() {
                   </div>
                 );
               })()}
+
+              {/* ── 데이터 관리 ── */}
+              <div style={{marginTop:"28px",borderTop:"0.5px solid var(--color-border-tertiary)",paddingTop:"20px"}}>
+                <p style={{margin:"0 0 14px",fontSize:"14px",fontWeight:500}}>📁 데이터 관리</p>
+
+                <p style={{margin:"0 0 10px",fontSize:"12px",color:"var(--color-text-secondary)"}}>수업별 데이터 삭제</p>
+                <div style={{display:"grid",gap:"8px",marginBottom:"20px"}}>
+                  {Object.keys(lessons).map(lk => {
+                    const totalEntries = users.reduce((acc, u) => {
+                      const ud = allData[u.id] || {};
+                      return acc + Object.keys(ud.used?.[lk]||{}).length + Object.keys(ud.jokeUsed?.[lk]||{}).length;
+                    }, 0);
+                    return (
+                      <div key={lk} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"var(--color-background-secondary)",borderRadius:"var(--border-radius-md)",padding:"10px 14px"}}>
+                        <div>
+                          <span style={{fontSize:"13px",fontWeight:500}}>{lessons[lk]?.label || lk}</span>
+                          {lessons[lk]?.topic && <span style={{fontSize:"11px",color:"var(--color-text-tertiary)",marginLeft:"8px"}}>{lessons[lk].topic}</span>}
+                          <span style={{fontSize:"11px",color:"var(--color-text-secondary)",marginLeft:"8px"}}>({totalEntries}개 기록)</span>
+                        </div>
+                        <button onClick={() => deleteLesson(lk)}
+                          style={{background:"none",border:"0.5px solid #E24B4A",borderRadius:"var(--border-radius-md)",padding:"4px 10px",fontSize:"11px",cursor:"pointer",color:"#E24B4A",flexShrink:0}}>
+                          삭제
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button onClick={resetAll}
+                  style={{width:"100%",background:"#FCEBEB",border:"0.5px solid #E24B4A",borderRadius:"var(--border-radius-md)",padding:"10px",fontSize:"13px",cursor:"pointer",color:"#C0392B",fontWeight:500}}>
+                  ⚠️ 전체 데이터 초기화
+                </button>
+              </div>
             </div>
           )
         )}
