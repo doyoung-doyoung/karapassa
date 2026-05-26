@@ -355,10 +355,14 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
 const LS = {
   get: (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } },
   set: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} },
+  del: (key) => { try { localStorage.removeItem(key); } catch {} },
 };
 
+// 앱 버전 — 이 값을 올리면 기존 캐시 무효화 없이 마이그레이션만 수행
+const APP_VERSION = "v2";
+
 export default function ThaiApp() {
-  const [users, setUsers] = useState(() => LS.get("kp_users", [{id:"u1",name:"크리스",ci:0}]));
+  const [users, setUsers] = useState(() => LS.get("kp_users", [{id:"u1",name:"지노 대표님",ci:0}]));
   const [currentUserId, setCurrentUserId] = useState(null);
   const [newUserName, setNewUserName] = useState("");
   const [addingUser, setAddingUser] = useState(false);
@@ -550,6 +554,18 @@ export default function ThaiApp() {
   useEffect(() => { LS.set("kp_users", users); }, [users]);
   useEffect(() => { LS.set("kp_allData", allData); }, [allData]);
   useEffect(() => { LS.set("kp_lessons", lessons); }, [lessons]);
+
+  // ── 버전 마이그레이션 (앱 업데이트 시 1회 실행) ──
+  useEffect(() => {
+    if (LS.get("kp_app_version", "") === APP_VERSION) return;
+    // "크리스" → "지노 대표님" 이름 마이그레이션
+    setUsers(prev => {
+      const updated = prev.map(u => u.name === "크리스" ? {...u, name:"지노 대표님"} : u);
+      LS.set("kp_users", updated);
+      return updated;
+    });
+    LS.set("kp_app_version", APP_VERSION);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 엑셀(CSV) 내보내기 ──
   const exportCSV = () => {
