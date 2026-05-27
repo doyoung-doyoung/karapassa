@@ -397,7 +397,14 @@ export default function ThaiApp() {
 
   const [allData, setAllData] = useState(() => LS.get("kp_allData", {u1:{used:{},jokeUsed:{},gameHistory:[]}}));
   const [tab, setTab] = useState("learn");
-  const [lessonKey, setLessonKey] = useState("5/23");
+  const [lessonKey, setLessonKey] = useState(() => {
+    const saved = LS.get("kp_lessons", null);
+    const keys = saved ? Object.keys(saved) : Object.keys(INITIAL_LESSONS);
+    return keys.sort((a, b) => {
+      const toNum = s => { const [m, d] = (s||"0/0").split("/").map(Number); return m * 100 + d; };
+      return toNum(b) - toNum(a);
+    })[0] || "5/23";
+  });
   const [lessons, setLessons] = useState(() => LS.get("kp_lessons", INITIAL_LESSONS));
   const [idx, setIdx] = useState(0);
   const [kIdx, setKIdx] = useState(-1);
@@ -426,6 +433,12 @@ export default function ThaiApp() {
     const uid = currentUserId;
     setAllData(p => ({...p, [uid]: fn(p[uid] || {used:{},jokeUsed:{},gameHistory:[]})}));
   };
+
+  // 날짜 키를 최신순(내림차순)으로 정렬
+  const sortedLessonKeys = Object.keys(lessons).sort((a, b) => {
+    const toNum = s => { const [m, d] = (s||"0/0").split("/").map(Number); return m * 100 + d; };
+    return toNum(b) - toNum(a);
+  });
 
   const lesson = lessons[lessonKey];
   const sentences = lesson?.sentences || [];
@@ -789,7 +802,7 @@ export default function ThaiApp() {
           </div>
         </div>
         <div style={{display:"flex",gap:"5px",marginBottom:"10px",flexWrap:"wrap"}}>
-          {Object.keys(lessons).map(k => (
+          {sortedLessonKeys.map(k => (
             <button key={k} onClick={() => setLessonKey(k)}
               style={{background:k===lessonKey?"rgba(255,255,255,0.9)":"rgba(255,255,255,0.2)",color:k===lessonKey?uColor:"rgba(255,255,255,0.9)",border:"none",borderRadius:"12px",padding:"4px 12px",fontSize:"12px",cursor:"pointer",fontWeight:k===lessonKey?500:400}}>
               {lessons[k].label}
@@ -1243,7 +1256,7 @@ export default function ThaiApp() {
 
                 <p style={{margin:"0 0 10px",fontSize:"12px",color:"var(--color-text-secondary)"}}>수업별 삭제 (수업 내용 + 학습 기록 모두 삭제)</p>
                 <div style={{display:"grid",gap:"8px",marginBottom:"20px"}}>
-                  {Object.keys(lessons).map(lk => {
+                  {sortedLessonKeys.map(lk => {
                     const totalEntries = users.reduce((acc, u) => {
                       const ud = allData[u.id] || {};
                       return acc + Object.keys(ud.used?.[lk]||{}).length + Object.keys(ud.jokeUsed?.[lk]||{}).length;
