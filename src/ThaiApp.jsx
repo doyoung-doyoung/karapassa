@@ -182,6 +182,29 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
   const addSent = () => setSents(p => [...p, blank()]);
   const removeSent = si => setSents(p => p.filter((_, i) => i !== si));
 
+  // ── 기존 문장 편집 ──
+  const [editSents, setEditSents] = useState(() =>
+    mode === "existing" && targetKey
+      ? (existingLessons[targetKey]?.sentences||[]).map(s=>({...s,vocab:[...(s.vocab||[]).map(v=>({...v}))]}))
+      : []
+  );
+  useEffect(() => {
+    if (mode === "existing" && targetKey) {
+      setEditSents((existingLessons[targetKey]?.sentences||[]).map(s=>({...s,vocab:[...(s.vocab||[]).map(v=>({...v}))]})));
+    } else {
+      setEditSents([]);
+    }
+  }, [targetKey, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const updateExistSent = (si, field, val) =>
+    setEditSents(p => p.map((s, i) => i === si ? {...s, [field]: val} : s));
+  const updateExistVocab = (si, vi, field, val) =>
+    setEditSents(p => p.map((s, i) => i !== si ? s : {...s, vocab: (s.vocab||[]).map((v, j) => j === vi ? {...v, [field]: val} : v)}));
+  const addExistVocab = si =>
+    setEditSents(p => p.map((s, i) => i !== si ? s : {...s, vocab: [...(s.vocab||[]), {thai:"",korean:""}]}));
+  const removeExistVocab = (si, vi) =>
+    setEditSents(p => p.map((s, i) => i !== si ? s : {...s, vocab: (s.vocab||[]).filter((_, j) => j !== vi)}));
+
   const handleSave = () => {
     const key = mode === "new" ? newKey.trim() : targetKey;
     if (!key) return;
@@ -190,8 +213,9 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
       thai: s.thai.trim(), korean: s.korean.trim(),
       vocab: s.vocab.filter(v => v.thai.trim()).map(v => ({thai:v.thai.trim(), korean:v.korean.trim()}))
     }));
-    if (!validSents.length) return;
+    if (mode === "new" && !validSents.length) return;
     onSave({ mode, key, topic: newTopic, sents: validSents, jokeIds: selectedJokeIds,
+      editSents: mode === "existing" ? editSents : undefined,
       customJokes: customJokes.filter(j => j.thai.trim()).map(j => ({
         ...j, vocab: j.vocab.filter(v => v.thai.trim())
       })) });
@@ -234,7 +258,48 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
         )}
       </div>
 
-      {/* 문장 입력 */}
+      {/* 기존 문장 수정 (existing 모드에서만 표시) */}
+      {mode === "existing" && editSents.length > 0 && (
+        <div style={{marginBottom:"16px"}}>
+          <p style={{margin:"0 0 10px",fontSize:"12px",fontWeight:500,color:"var(--color-text-secondary)"}}>기존 문장 수정</p>
+          {editSents.map((s, si) => (
+            <div key={s.id||si} style={{background:"var(--color-background-secondary)",borderRadius:"var(--border-radius-md)",padding:"14px",marginBottom:"10px",border:`0.5px solid ${uColor}30`}}>
+              <span style={{fontSize:"12px",fontWeight:500,color:"var(--color-text-secondary)",display:"block",marginBottom:"10px"}}>문장 {si + 1}</span>
+              <div style={{marginBottom:"8px"}}>
+                <label style={{display:"block",fontSize:"11px",color:"var(--color-text-tertiary)",marginBottom:"4px",fontWeight:500}}>태국어 (한글 발음)</label>
+                <input value={s.thai} onChange={e => updateExistSent(si, "thai", e.target.value)}
+                  style={{width:"100%",padding:"9px 12px",border:`0.5px solid ${s.thai?uColor:"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"16px",boxSizing:"border-box",outline:"none",fontWeight:500,color:uColor,background:"var(--color-background-primary)"}} />
+              </div>
+              <div style={{marginBottom:"12px"}}>
+                <label style={{display:"block",fontSize:"11px",color:"var(--color-text-tertiary)",marginBottom:"4px",fontWeight:500}}>뜻 (한국어)</label>
+                <input value={s.korean} onChange={e => updateExistSent(si, "korean", e.target.value)}
+                  style={{width:"100%",padding:"9px 12px",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",fontSize:"14px",boxSizing:"border-box",outline:"none",background:"var(--color-background-primary)"}} />
+              </div>
+              <div>
+                <label style={{display:"block",fontSize:"11px",color:"var(--color-text-tertiary)",marginBottom:"8px",fontWeight:500}}>단어</label>
+                {(s.vocab||[]).map((v, vi) => (
+                  <div key={vi} style={{display:"flex",gap:"6px",marginBottom:"6px",alignItems:"center"}}>
+                    <input value={v.thai} onChange={e => updateExistVocab(si, vi, "thai", e.target.value)} placeholder="태국어"
+                      style={{flex:1,padding:"7px 10px",border:`0.5px solid ${v.thai?uColor:"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"13px",outline:"none",color:uColor,fontWeight:v.thai?500:400,background:"var(--color-background-primary)"}} />
+                    <span style={{color:"var(--color-text-tertiary)",fontSize:"13px",flexShrink:0}}>→</span>
+                    <input value={v.korean} onChange={e => updateExistVocab(si, vi, "korean", e.target.value)} placeholder="뜻"
+                      style={{flex:1,padding:"7px 10px",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",fontSize:"13px",outline:"none",background:"var(--color-background-primary)"}} />
+                    {(s.vocab||[]).length > 1 && (
+                      <button onClick={() => removeExistVocab(si, vi)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--color-text-tertiary)",fontSize:"18px",padding:"0 4px",flexShrink:0,lineHeight:1}}>×</button>
+                    )}
+                  </div>
+                ))}
+                <button onClick={() => addExistVocab(si)}
+                  style={{width:"100%",background:"none",border:`0.5px dashed ${uColor}`,borderRadius:"var(--border-radius-md)",padding:"6px",fontSize:"12px",cursor:"pointer",color:uColor,marginTop:"4px"}}>
+                  + 단어 추가
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 새 문장 추가 */}
       {sents.map((s, si) => (
         <div key={si} style={{background:"var(--color-background-secondary)",borderRadius:"var(--border-radius-md)",padding:"14px",marginBottom:"10px",border:"0.5px solid var(--color-border-tertiary)"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}}>
@@ -280,6 +345,9 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
         </div>
       ))}
 
+      {mode === "existing" && (
+        <p style={{margin:"0 0 8px",fontSize:"12px",fontWeight:500,color:"var(--color-text-secondary)"}}>새 문장 추가 (선택사항)</p>
+      )}
       <button onClick={addSent}
         style={{width:"100%",background:"none",border:"0.5px dashed var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",padding:"10px",fontSize:"13px",cursor:"pointer",color:"var(--color-text-secondary)",marginBottom:"14px"}}>
         + 문장 추가
@@ -574,7 +642,7 @@ export default function ThaiApp() {
   };
 
   // ── Lesson save ──
-  const handleLessonSave = ({mode, key, topic, sents, jokeIds, customJokes}) => {
+  const handleLessonSave = ({mode, key, topic, sents, jokeIds, customJokes, editSents}) => {
     const newLessonJokes = (customJokes||[]).filter(j => j.thai.trim()).map((j, i) => ({
       id: `lj_${key}_${Date.now()}_${i}`,
       thai: j.thai.trim(), korean: j.korean.trim(), note: j.note.trim(),
@@ -588,7 +656,11 @@ export default function ThaiApp() {
         const existing = p[key];
         const mergedJokes = [...new Set([...(existing.jokeIds||[]), ...(jokeIds||[])])];
         const mergedLessonJokes = [...(existing.lessonJokes||[]), ...newLessonJokes];
-        return {...p, [key]: {...existing, sentences:[...existing.sentences, ...sents], jokeIds:mergedJokes, lessonJokes:mergedLessonJokes}};
+        // 기존 문장은 editSents로 교체 (단어 수정 반영), 새 문장은 뒤에 추가
+        const updatedExisting = editSents
+          ? editSents.map(s => ({...s, vocab: (s.vocab||[]).filter(v => v.thai.trim())}))
+          : existing.sentences;
+        return {...p, [key]: {...existing, sentences:[...updatedExisting, ...sents], jokeIds:mergedJokes, lessonJokes:mergedLessonJokes}};
       });
       setLessonKey(key);
     }
