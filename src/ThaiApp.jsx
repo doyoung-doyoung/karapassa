@@ -401,7 +401,12 @@ export default function ThaiApp() {
     const saved = LS.get("kp_lessons", null);
     const keys = saved ? Object.keys(saved) : Object.keys(INITIAL_LESSONS);
     return keys.sort((a, b) => {
-      const toNum = s => { const [m, d] = (s||"0/0").split("/").map(Number); return m * 100 + d; };
+      const toNum = s => {
+        if (!s) return 0;
+        if (s.includes('/')) { const [m, d] = s.split('/').map(Number); return (m||0)*100+(d||0); }
+        const m = parseInt(s); const d = parseInt(s.replace(/^\d+월\s*/, ''));
+        return (m||0)*100+(d||0);
+      };
       return toNum(b) - toNum(a);
     })[0] || "5/23";
   });
@@ -436,7 +441,12 @@ export default function ThaiApp() {
 
   // 날짜 키를 최신순(내림차순)으로 정렬
   const sortedLessonKeys = Object.keys(lessons).sort((a, b) => {
-    const toNum = s => { const [m, d] = (s||"0/0").split("/").map(Number); return m * 100 + d; };
+    const toNum = s => {
+      if (!s) return 0;
+      if (s.includes('/')) { const [m, d] = s.split('/').map(Number); return (m||0)*100+(d||0); }
+      const m = parseInt(s); const d = parseInt(s.replace(/^\d+월\s*/, ''));
+      return (m||0)*100+(d||0);
+    };
     return toNum(b) - toNum(a);
   });
 
