@@ -136,11 +136,6 @@ function CheckCard({ type, id, thai, korean, jokeNote, isUsed, isEntering, recor
         </div>
       )}
 
-      {!isEntering && (
-        <button onClick={() => onSpeak(thai)} style={{marginTop:"10px",background:"none",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-md)",padding:"6px 12px",fontSize:"12px",cursor:"pointer",color:"var(--color-text-secondary)",display:"flex",alignItems:"center",gap:"5px"}}>
-          <i className="ti ti-volume" aria-hidden="true" /> 듣기
-        </button>
-      )}
     </div>
   );
 }
@@ -940,14 +935,9 @@ export default function ThaiApp() {
                   <i className="ti ti-check" aria-hidden="true" /> 사용 완료 · {usedL[cur.id].time}
                 </div>
               )}
-              <Karaoke text={cur.thai} active={kIdx} size={26} />
+              <Karaoke text={cur.thai} active={-1} size={26} />
               {showKo && <p style={{textAlign:"center",fontSize:"14px",color:"var(--color-text-secondary)",margin:"16px 0 0",lineHeight:1.7}}>{cur.korean}</p>}
               <div style={{display:"flex",gap:"8px",justifyContent:"center",marginTop:"22px"}}>
-                <button onClick={() => speaking ? stopSpeak() : speak(cur.thai)}
-                  style={{background:speaking?"#FAECE7":uColor,color:speaking?uColor:"#fff",border:speaking?`0.5px solid ${uColor}`:"none",borderRadius:"var(--border-radius-md)",padding:"10px 22px",fontSize:"14px",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",fontWeight:500}}>
-                  <i className={`ti ${speaking?"ti-player-pause":"ti-player-play"}`} aria-hidden="true" />
-                  {speaking ? "정지" : "카라오케 재생"}
-                </button>
                 <button onClick={() => setShowKo(v => !v)}
                   style={{background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-md)",padding:"10px 14px",fontSize:"16px",cursor:"pointer",color:"var(--color-text-secondary)"}}>
                   <i className={`ti ${showKo?"ti-eye-off":"ti-eye"}`} aria-hidden="true" />
@@ -970,12 +960,6 @@ export default function ThaiApp() {
               </div>
               <p style={{fontSize:"13px",color:"#633806",textAlign:"center",margin:"0 0 12px"}}>{j.korean}</p>
               <Pills vocab={j.vocab} />
-              <div style={{display:"flex",justifyContent:"center",marginTop:"12px"}}>
-                <button onClick={() => speak(j.thai)}
-                  style={{background:"none",border:"0.5px solid #BA7517",color:"#633806",borderRadius:"var(--border-radius-md)",padding:"7px 16px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px"}}>
-                  <i className="ti ti-player-play" aria-hidden="true" /> 들어보기
-                </button>
-              </div>
             </div>
           ))}
         </>}
@@ -1048,8 +1032,8 @@ export default function ThaiApp() {
                   const masteryCount = (myRaw.masteredWords || {})[v.thai] || 0;
                   const isMastered = masteryCount >= MASTERY_THRESHOLD;
                   return (
-                    <div key={i} onClick={() => speak(v.thai)}
-                      style={{background:"var(--color-background-primary)",border:`0.5px solid ${isMastered?"#639922":"var(--color-border-tertiary)"}`,borderRadius:"var(--border-radius-md)",padding:"12px 14px",cursor:"pointer",display:"flex",flexDirection:"column",gap:"4px",transition:"border-color 0.15s"}}
+                    <div key={i}
+                      style={{background:"var(--color-background-primary)",border:`0.5px solid ${isMastered?"#639922":"var(--color-border-tertiary)"}`,borderRadius:"var(--border-radius-md)",padding:"12px 14px",display:"flex",flexDirection:"column",gap:"4px",transition:"border-color 0.15s"}}
                       onMouseEnter={e => e.currentTarget.style.borderColor = isMastered ? "#639922" : uColor}
                       onMouseLeave={e => e.currentTarget.style.borderColor = isMastered ? "#639922" : "var(--color-border-tertiary)"}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
