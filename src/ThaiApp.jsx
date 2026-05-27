@@ -416,6 +416,8 @@ export default function ThaiApp() {
   const [showLessonForm, setShowLessonForm] = useState(false);
   const [loadingData, setLoadingData] = useState(!!GS_URL);
   const [syncing, setSyncing] = useState(false);
+  const [confirmDeleteKey, setConfirmDeleteKey] = useState(null);
+  const [confirmResetAll, setConfirmResetAll] = useState(false);
 
   const timers = useRef([]);
 
@@ -659,7 +661,8 @@ export default function ThaiApp() {
 
   // ── 수업별 데이터 삭제 ──
   const deleteLesson = (lk) => {
-    if (!window.confirm(`"${lessons[lk]?.label || lk}" 수업 데이터를 모두 삭제할까요?`)) return;
+    // 수업 자체 + 학습 기록 모두 삭제
+    setLessons(p => { const n = {...p}; delete n[lk]; return n; });
     setAllData(p => {
       const next = {...p};
       Object.keys(next).forEach(uid => {
@@ -671,13 +674,14 @@ export default function ThaiApp() {
       });
       return next;
     });
+    setConfirmDeleteKey(null);
   };
 
   const resetAll = () => {
-    if (!window.confirm("모든 학습 데이터를 초기화할까요? 이 작업은 되돌릴 수 없어요.")) return;
     const blank = {};
     users.forEach(u => { blank[u.id] = {used:{},jokeUsed:{},gameHistory:[]}; });
     setAllData(blank);
+    setConfirmResetAll(false);
   };
 
   // Clear entering/draft when tab or lesson changes to prevent stale state
@@ -1237,33 +1241,62 @@ export default function ThaiApp() {
               <div style={{marginTop:"28px",borderTop:"0.5px solid var(--color-border-tertiary)",paddingTop:"20px"}}>
                 <p style={{margin:"0 0 14px",fontSize:"14px",fontWeight:500}}>📁 데이터 관리</p>
 
-                <p style={{margin:"0 0 10px",fontSize:"12px",color:"var(--color-text-secondary)"}}>수업별 데이터 삭제</p>
+                <p style={{margin:"0 0 10px",fontSize:"12px",color:"var(--color-text-secondary)"}}>수업별 삭제 (수업 내용 + 학습 기록 모두 삭제)</p>
                 <div style={{display:"grid",gap:"8px",marginBottom:"20px"}}>
                   {Object.keys(lessons).map(lk => {
                     const totalEntries = users.reduce((acc, u) => {
                       const ud = allData[u.id] || {};
                       return acc + Object.keys(ud.used?.[lk]||{}).length + Object.keys(ud.jokeUsed?.[lk]||{}).length;
                     }, 0);
+                    const isPending = confirmDeleteKey === lk;
                     return (
-                      <div key={lk} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"var(--color-background-secondary)",borderRadius:"var(--border-radius-md)",padding:"10px 14px"}}>
+                      <div key={lk} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background: isPending ? "#FCEBEB" : "var(--color-background-secondary)",borderRadius:"var(--border-radius-md)",padding:"10px 14px",transition:"background 0.2s"}}>
                         <div>
                           <span style={{fontSize:"13px",fontWeight:500}}>{lessons[lk]?.label || lk}</span>
                           {lessons[lk]?.topic && <span style={{fontSize:"11px",color:"var(--color-text-tertiary)",marginLeft:"8px"}}>{lessons[lk].topic}</span>}
                           <span style={{fontSize:"11px",color:"var(--color-text-secondary)",marginLeft:"8px"}}>({totalEntries}개 기록)</span>
                         </div>
-                        <button onClick={() => deleteLesson(lk)}
-                          style={{background:"none",border:"0.5px solid #E24B4A",borderRadius:"var(--border-radius-md)",padding:"4px 10px",fontSize:"11px",cursor:"pointer",color:"#E24B4A",flexShrink:0}}>
-                          삭제
-                        </button>
+                        <div style={{display:"flex",gap:"6px",flexShrink:0}}>
+                          {isPending ? (
+                            <>
+                              <button onClick={() => setConfirmDeleteKey(null)}
+                                style={{background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",padding:"4px 10px",fontSize:"11px",cursor:"pointer",color:"var(--color-text-secondary)"}}>
+                                취소
+                              </button>
+                              <button onClick={() => deleteLesson(lk)}
+                                style={{background:"#E24B4A",border:"none",borderRadius:"var(--border-radius-md)",padding:"4px 10px",fontSize:"11px",cursor:"pointer",color:"#fff",fontWeight:600}}>
+                                정말 삭제
+                              </button>
+                            </>
+                          ) : (
+                            <button onClick={() => setConfirmDeleteKey(lk)}
+                              style={{background:"none",border:"0.5px solid #E24B4A",borderRadius:"var(--border-radius-md)",padding:"4px 10px",fontSize:"11px",cursor:"pointer",color:"#E24B4A"}}>
+                              삭제
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
 
-                <button onClick={resetAll}
-                  style={{width:"100%",background:"#FCEBEB",border:"0.5px solid #E24B4A",borderRadius:"var(--border-radius-md)",padding:"10px",fontSize:"13px",cursor:"pointer",color:"#C0392B",fontWeight:500}}>
-                  ⚠️ 전체 데이터 초기화
-                </button>
+                {confirmResetAll ? (
+                  <div style={{display:"flex",gap:"8px"}}>
+                    <button onClick={() => setConfirmResetAll(false)}
+                      style={{flex:1,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",padding:"10px",fontSize:"13px",cursor:"pointer",color:"var(--color-text-secondary)"}}>
+                      취소
+                    </button>
+                    <button onClick={resetAll}
+                      style={{flex:1,background:"#E24B4A",border:"none",borderRadius:"var(--border-radius-md)",padding:"10px",fontSize:"13px",cursor:"pointer",color:"#fff",fontWeight:600}}>
+                      정말 초기화
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmResetAll(true)}
+                    style={{width:"100%",background:"#FCEBEB",border:"0.5px solid #E24B4A",borderRadius:"var(--border-radius-md)",padding:"10px",fontSize:"13px",cursor:"pointer",color:"#C0392B",fontWeight:500}}>
+                    ⚠️ 전체 데이터 초기화
+                  </button>
+                )}
               </div>
             </div>
           )
