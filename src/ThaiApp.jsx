@@ -234,7 +234,15 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
       <div style={{marginBottom:"16px"}}>
         <p style={{margin:"0 0 8px",fontSize:"12px",fontWeight:500,color:"var(--color-text-secondary)"}}>날짜 선택</p>
         <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"8px"}}>
-          {Object.keys(existingLessons).map(k => (
+          {Object.keys(existingLessons).sort((a, b) => {
+            const toNum = s => {
+              if (!s) return 0;
+              if (s.includes('/')) { const [m, d] = s.split('/').map(Number); return (m||0)*100+(d||0); }
+              const m = parseInt(s); const d = parseInt(s.replace(/^\d+월\s*/, ''));
+              return (m||0)*100+(d||0);
+            };
+            return toNum(b) - toNum(a);
+          }).map(k => (
             <button key={k} onClick={() => { setMode("existing"); setTargetKey(k); }}
               style={{background:isBtnActive(k)?uColor:"var(--color-background-secondary)",color:isBtnActive(k)?"#fff":"var(--color-text-secondary)",border:`0.5px solid ${isBtnActive(k)?uColor:"var(--color-border-tertiary)"}`,borderRadius:"20px",padding:"6px 14px",fontSize:"12px",cursor:"pointer",fontWeight:isBtnActive(k)?500:400}}>
               {existingLessons[k].label}
@@ -1209,25 +1217,6 @@ export default function ThaiApp() {
                   })}
                 </div>
 
-                {/* 농담 선택 */}
-                <div style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",padding:"16px",marginBottom:"12px"}}>
-                  <p style={{margin:"0 0 12px",fontSize:"13px",fontWeight:500}}>오늘 수업 농담 선택</p>
-                  {ALL_JOKES.map(j => {
-                    const isSel = (lesson?.jokeIds||[]).includes(j.id);
-                    return (
-                      <div key={j.id} onClick={() => setLessons(p => ({...p, [lessonKey]:{...p[lessonKey], jokeIds:isSel ? p[lessonKey].jokeIds.filter(x=>x!==j.id) : [...(p[lessonKey].jokeIds||[]),j.id]}}))}
-                        style={{background:isSel?"#FAEEDA":"var(--color-background-secondary)",border:`0.5px solid ${isSel?"#EF9F27":"var(--color-border-tertiary)"}`,borderRadius:"var(--border-radius-md)",padding:"10px 14px",marginBottom:"8px",cursor:"pointer",display:"flex",alignItems:"flex-start",gap:"10px"}}>
-                        <div style={{width:"18px",height:"18px",borderRadius:"4px",background:isSel?"#D85A30":"transparent",border:`1.5px solid ${isSel?"#D85A30":"var(--color-border-secondary)"}`,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",marginTop:"1px"}}>
-                          {isSel && <i className="ti ti-check" aria-hidden="true" style={{fontSize:"12px",color:"#fff"}} />}
-                        </div>
-                        <div>
-                          <p style={{margin:0,fontSize:"13px",fontWeight:500,color:isSel?"#712B13":"var(--color-text-primary)"}}>{j.thai}</p>
-                          <p style={{margin:"2px 0 0",fontSize:"11px",color:"var(--color-text-secondary)"}}>{j.korean} · <span style={{color:"var(--color-text-tertiary)"}}>{j.note}</span></p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
 
                 {/* 사용자 관리 */}
                 <div style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",padding:"16px",marginBottom:"12px"}}>
