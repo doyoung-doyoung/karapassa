@@ -1106,6 +1106,20 @@ export default function ThaiApp() {
                 onSpeak={speak} onDraftChange={setDraft} onDraftMeaningChange={setDraftMeaning} />
             ))}
           </>}
+
+          {/* ── 메모 ── */}
+          <div style={{marginTop:"24px",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",padding:"16px"}}>
+            <p style={{margin:"0 0 6px",fontSize:"13px",fontWeight:500,display:"flex",alignItems:"center",gap:"6px"}}>
+              <i className="ti ti-notes" aria-hidden="true" style={{color:"#2D7DD2"}} /> 메모
+            </p>
+            <p style={{margin:"0 0 10px",fontSize:"12px",color:"var(--color-text-secondary)",lineHeight:1.6}}>궁금한 단어·표현, 헷갈리는 것을 적어두세요. 선생님이 확인해요.</p>
+            <textarea
+              value={myRaw.notes?.[lessonKey] || ""}
+              onChange={e => updMyData(d => ({...d, notes: {...(d.notes||{}), [lessonKey]: e.target.value}}))}
+              placeholder={"예: '마이캅'이랑 '마이카' 언제 쓰나요?"}
+              style={{width:"100%",padding:"10px 12px",border:`0.5px solid ${myRaw.notes?.[lessonKey]?"#2D7DD2":"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"13px",resize:"vertical",minHeight:"80px",boxSizing:"border-box",outline:"none",lineHeight:1.6,background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"inherit"}}
+            />
+          </div>
         </>}
 
         {/* ════ DICT ════ */}
@@ -1152,11 +1166,17 @@ export default function ThaiApp() {
                         <span style={{fontSize:"18px",fontWeight:500,color:isMastered?"#3B9E52":uColor}}>{v.thai}</span>
                         {isMastered && <span style={{fontSize:"10px",background:"#EAF3DE",color:"#3B6D11",padding:"2px 7px",borderRadius:"10px",whiteSpace:"nowrap",flexShrink:0,fontWeight:500}}>암기 완료</span>}
                       </div>
+                      {v.thaiScript && <span style={{fontSize:"15px",fontWeight:500,color:"#1A936F"}}>{v.thaiScript}</span>}
                       <span style={{fontSize:"13px",color:"var(--color-text-secondary)"}}>{v.korean}</span>
-                      <span style={{fontSize:"11px",color:"var(--color-text-tertiary)",display:"flex",alignItems:"center",gap:"3px"}}>
-                        <i className="ti ti-volume" aria-hidden="true" /> 탭해서 듣기
-                        {masteryCount > 0 && !isMastered && <span style={{marginLeft:"auto",color:"#639922",fontWeight:500}}>{masteryCount}/5</span>}
-                      </span>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:"2px"}}>
+                        {v.thaiScript
+                          ? <button onClick={() => speak(v.thaiScript)} style={{background:"#E8F7F2",color:"#1A936F",border:"0.5px solid #1A936F",borderRadius:"var(--border-radius-md)",padding:"4px 10px",fontSize:"11px",cursor:"pointer",display:"flex",alignItems:"center",gap:"4px",fontWeight:500}}>
+                              <i className="ti ti-volume" aria-hidden="true" /> 듣기
+                            </button>
+                          : <span style={{fontSize:"11px",color:"var(--color-text-tertiary)"}}> </span>
+                        }
+                        {masteryCount > 0 && !isMastered && <span style={{color:"#639922",fontSize:"11px",fontWeight:500}}>{masteryCount}/5</span>}
+                      </div>
                     </div>
                   );
                 })}
@@ -1308,6 +1328,12 @@ export default function ThaiApp() {
                           <div style={{background:uC,height:"4px",borderRadius:"2px",width:`${totalChecks>0?(dc/totalChecks)*100:0}%`,transition:"width 0.4s"}} />
                         </div>
                         {lastG && <p style={{margin:"8px 0 0",fontSize:"12px",color:"var(--color-text-secondary)"}}>최근 게임: {lastG.score}/{lastG.total}점 · 틀린 단어 {lastG.wrong.length}개</p>}
+                        {ud.notes?.[lessonKey]?.trim() && (
+                          <div style={{marginTop:"8px",padding:"8px 10px",background:"#EEF4FF",borderRadius:"var(--border-radius-md)",borderLeft:"3px solid #2D7DD2"}}>
+                            <p style={{margin:"0 0 3px",fontSize:"11px",color:"#2D7DD2",fontWeight:500}}>📝 메모</p>
+                            <p style={{margin:0,fontSize:"12px",color:"var(--color-text-primary)",lineHeight:1.5}}>{ud.notes[lessonKey]}</p>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1386,6 +1412,22 @@ export default function ThaiApp() {
                         )}
                       </div>
                     ))}
+
+                    {/* 날짜별 메모 */}
+                    <p style={{margin:"16px 0 10px",fontSize:"13px",fontWeight:500,color:"var(--color-text-secondary)"}}>날짜별 메모</p>
+                    {Object.entries(ud.notes||{}).filter(([,v])=>v?.trim()).length === 0
+                      ? <p style={{fontSize:"13px",color:"var(--color-text-tertiary)",textAlign:"center",padding:"12px 0 4px"}}>메모가 없어요</p>
+                      : sortedLessonKeys.map(lk => {
+                          const note = ud.notes?.[lk];
+                          if (!note?.trim()) return null;
+                          return (
+                            <div key={lk} style={{background:"var(--color-background-primary)",border:"0.5px solid #2D7DD2",borderRadius:"var(--border-radius-md)",padding:"12px",marginBottom:"8px"}}>
+                              <p style={{margin:"0 0 5px",fontSize:"12px",fontWeight:500,color:"#2D7DD2"}}>{lessons[lk]?.label || lk}</p>
+                              <p style={{margin:0,fontSize:"13px",color:"var(--color-text-primary)",lineHeight:1.6,whiteSpace:"pre-wrap"}}>{note}</p>
+                            </div>
+                          );
+                        })
+                    }
 
                     <p style={{margin:"16px 0 10px",fontSize:"13px",fontWeight:500,color:"var(--color-text-secondary)"}}>단어 게임 성적</p>
                     {!ud.gameHistory?.length
