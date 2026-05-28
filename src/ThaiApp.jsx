@@ -1220,8 +1220,19 @@ export default function ThaiApp() {
                   <p style={{fontSize:"13px",fontWeight:500,margin:"0 0 10px",color:"var(--color-text-secondary)"}}>틀린 단어</p>
                   {game.q.filter(q => q.ans && q.ans !== q.korean).map((q, i) => (
                     <div key={i} style={{background:"#FCEBEB",border:"0.5px solid #E24B4A",borderRadius:"var(--border-radius-md)",padding:"10px 14px",marginBottom:"6px"}}>
-                      <p style={{margin:0,fontSize:"16px",fontWeight:500,color:"#E24B4A"}}>{q.thai}</p>
-                      <p style={{margin:"4px 0 0",fontSize:"12px",color:"#501313"}}>내가 선택: <b>{q.ans}</b> → 정답: <b style={{color:"#1E4D08"}}>{q.korean}</b></p>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                        <div>
+                          <p style={{margin:0,fontSize:"16px",fontWeight:500,color:"#E24B4A"}}>{q.thai}</p>
+                          {q.thaiScript && <p style={{margin:"2px 0 0",fontSize:"14px",fontWeight:500,color:"#1A936F"}}>{q.thaiScript}</p>}
+                          <p style={{margin:"4px 0 0",fontSize:"12px",color:"#501313"}}>내가 선택: <b>{q.ans}</b> → 정답: <b style={{color:"#1E4D08"}}>{q.korean}</b></p>
+                        </div>
+                        {q.thaiScript && (
+                          <button onClick={() => speak(q.thaiScript)}
+                            style={{background:"#E8F7F2",color:"#1A936F",border:"0.5px solid #1A936F",borderRadius:"var(--border-radius-md)",padding:"5px 10px",fontSize:"12px",cursor:"pointer",display:"flex",alignItems:"center",gap:"4px",flexShrink:0,marginLeft:"8px"}}>
+                            <i className="ti ti-volume" aria-hidden="true" /> 듣기
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1234,9 +1245,18 @@ export default function ThaiApp() {
                 <span style={{fontSize:"13px",color:"var(--color-text-secondary)"}}>{game.cur+1}/{game.q.length}</span>
                 <span style={{background:"#EAF3DE",color:"#27500A",padding:"5px 16px",borderRadius:"20px",fontSize:"13px",fontWeight:500}}>점수: {game.score}</span>
               </div>
-              <div style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",padding:"40px 20px",textAlign:"center",marginBottom:"20px"}}>
+              <div style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",padding:"32px 20px",textAlign:"center",marginBottom:"20px"}}>
                 <p style={{fontSize:"11px",color:"var(--color-text-tertiary)",margin:"0 0 10px"}}>이 단어의 뜻은?</p>
-                <p style={{fontSize:"38px",fontWeight:600,color:uColor,margin:0}}>{game.q[game.cur].thai}</p>
+                <p style={{fontSize:"36px",fontWeight:600,color:uColor,margin:0,lineHeight:1.3}}>{game.q[game.cur].thai}</p>
+                {game.q[game.cur].thaiScript && (
+                  <p style={{fontSize:"22px",fontWeight:500,color:"#1A936F",margin:"8px 0 0"}}>{game.q[game.cur].thaiScript}</p>
+                )}
+                {game.q[game.cur].thaiScript && (
+                  <button onClick={() => speak(game.q[game.cur].thaiScript)}
+                    style={{marginTop:"14px",background:"#E8F7F2",color:"#1A936F",border:"0.5px solid #1A936F",borderRadius:"var(--border-radius-md)",padding:"7px 18px",fontSize:"13px",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:"6px",fontWeight:500}}>
+                    <i className="ti ti-volume" aria-hidden="true" /> 듣기
+                  </button>
+                )}
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
                 {game.q[game.cur].opts.map((opt, i) => {
