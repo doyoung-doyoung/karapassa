@@ -613,6 +613,8 @@ export default function ThaiApp() {
   const [syncing, setSyncing] = useState(false);
   const [confirmDeleteKey, setConfirmDeleteKey] = useState(null);
   const [confirmResetAll, setConfirmResetAll] = useState(false);
+  const [memoText, setMemoText] = useState("");
+  const [memoSaved, setMemoSaved] = useState(false);
 
   const timers = useRef([]);
 
@@ -881,6 +883,7 @@ export default function ThaiApp() {
   // Clear entering/draft when tab or lesson changes to prevent stale state
   useEffect(() => { setEntering(null); setDraft(""); setDraftMeaning(""); }, [tab]);
   useEffect(() => { setIdx(0); setEntering(null); setDraft(""); setDraftMeaning(""); }, [lessonKey]);
+  useEffect(() => { setMemoText(myRaw.notes?.[lessonKey] || ""); setMemoSaved(false); }, [lessonKey, currentUserId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { clearT(); window.speechSynthesis?.cancel(); }, []);
 
   // Un-check a sentence or joke (undo accidental check)
@@ -1108,17 +1111,28 @@ export default function ThaiApp() {
           </>}
 
           {/* ── 메모 ── */}
-          <div style={{marginTop:"24px",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",padding:"16px"}}>
-            <p style={{margin:"0 0 6px",fontSize:"13px",fontWeight:500,display:"flex",alignItems:"center",gap:"6px"}}>
-              <i className="ti ti-notes" aria-hidden="true" style={{color:"#2D7DD2"}} /> 메모
-            </p>
+          <div style={{marginTop:"24px",background:"var(--color-background-primary)",border:`0.5px solid ${memoSaved?"#2D7DD2":"var(--color-border-tertiary)"}`,borderRadius:"var(--border-radius-lg)",padding:"16px",transition:"border-color 0.2s"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
+              <p style={{margin:0,fontSize:"13px",fontWeight:500,display:"flex",alignItems:"center",gap:"6px"}}>
+                <i className="ti ti-notes" aria-hidden="true" style={{color:"#2D7DD2"}} /> 메모
+              </p>
+              {memoSaved && <span style={{fontSize:"12px",color:"#2D7DD2",display:"flex",alignItems:"center",gap:"4px"}}><i className="ti ti-check" aria-hidden="true" /> 저장됨</span>}
+            </div>
             <p style={{margin:"0 0 10px",fontSize:"12px",color:"var(--color-text-secondary)",lineHeight:1.6}}>궁금한 단어·표현, 헷갈리는 것을 적어두세요. 선생님이 확인해요.</p>
             <textarea
-              value={myRaw.notes?.[lessonKey] || ""}
-              onChange={e => updMyData(d => ({...d, notes: {...(d.notes||{}), [lessonKey]: e.target.value}}))}
+              value={memoText}
+              onChange={e => { setMemoText(e.target.value); setMemoSaved(false); }}
               placeholder={"예: '마이캅'이랑 '마이카' 언제 쓰나요?"}
-              style={{width:"100%",padding:"10px 12px",border:`0.5px solid ${myRaw.notes?.[lessonKey]?"#2D7DD2":"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"13px",resize:"vertical",minHeight:"80px",boxSizing:"border-box",outline:"none",lineHeight:1.6,background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"inherit"}}
+              style={{width:"100%",padding:"10px 12px",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",fontSize:"13px",resize:"vertical",minHeight:"80px",boxSizing:"border-box",outline:"none",lineHeight:1.6,background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"inherit"}}
             />
+            <button
+              onClick={() => {
+                updMyData(d => ({...d, notes: {...(d.notes||{}), [lessonKey]: memoText}}));
+                setMemoSaved(true);
+              }}
+              style={{marginTop:"10px",width:"100%",background:"#2D7DD2",color:"#fff",border:"none",borderRadius:"var(--border-radius-md)",padding:"10px",fontSize:"13px",cursor:"pointer",fontWeight:500,display:"flex",alignItems:"center",justifyContent:"center",gap:"6px"}}>
+              <i className="ti ti-device-floppy" aria-hidden="true" /> 선생님께 메모 전달
+            </button>
           </div>
         </>}
 
@@ -1348,10 +1362,14 @@ export default function ThaiApp() {
                           <div style={{background:uC,height:"4px",borderRadius:"2px",width:`${totalChecks>0?(dc/totalChecks)*100:0}%`,transition:"width 0.4s"}} />
                         </div>
                         {lastG && <p style={{margin:"8px 0 0",fontSize:"12px",color:"var(--color-text-secondary)"}}>최근 게임: {lastG.score}/{lastG.total}점 · 틀린 단어 {lastG.wrong.length}개</p>}
-                        {ud.notes?.[lessonKey]?.trim() && (
-                          <div style={{marginTop:"8px",padding:"8px 10px",background:"#EEF4FF",borderRadius:"var(--border-radius-md)",borderLeft:"3px solid #2D7DD2"}}>
-                            <p style={{margin:"0 0 3px",fontSize:"11px",color:"#2D7DD2",fontWeight:500}}>📝 메모</p>
-                            <p style={{margin:0,fontSize:"12px",color:"var(--color-text-primary)",lineHeight:1.5}}>{ud.notes[lessonKey]}</p>
+                        {Object.entries(ud.notes||{}).filter(([,v])=>v?.trim()).length > 0 && (
+                          <div style={{marginTop:"8px"}}>
+                            {Object.entries(ud.notes).filter(([,v])=>v?.trim()).map(([lk, note]) => (
+                              <div key={lk} style={{padding:"8px 10px",background:"#EEF4FF",borderRadius:"var(--border-radius-md)",borderLeft:"3px solid #2D7DD2",marginBottom:"6px"}}>
+                                <p style={{margin:"0 0 3px",fontSize:"11px",color:"#2D7DD2",fontWeight:500}}>📝 {lessons[lk]?.label || lk}</p>
+                                <p style={{margin:0,fontSize:"12px",color:"var(--color-text-primary)",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{note}</p>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
