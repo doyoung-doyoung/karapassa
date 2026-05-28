@@ -1,24 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 
 // ─── DATA ────────────────────────────────────────────────
-const ALL_JOKES = [
-  { id:"j1", thai:"완니 땅짜이 탐응안 르~ 땅짜이 쑤~어이?", korean:"오늘 일 열심히 하러 온거야? 아님 예쁘게 꾸미러 온거야?", note:"여자나 게이한테만", vocab:[{thai:"완니",korean:"오늘"},{thai:"땅짜이",korean:"열심히"},{thai:"탐응안",korean:"일하다"},{thai:"르~",korean:"or"},{thai:"쑤~어이",korean:"예쁘다"}] },
-  { id:"j2", thai:"쑤~어이 막막 러~!", korean:"정말 엄청 예뻐요!", note:"칭찬할 때 누구한테나", vocab:[{thai:"쑤~어이",korean:"예쁘다"},{thai:"막막",korean:"엄청"}] },
-  { id:"j3", thai:"낀 카우 래우 루 양 캅?", korean:"밥은 먹었어요? (태국식 안부 인사)", note:"누구한테나", vocab:[{thai:"낀",korean:"먹다"},{thai:"카우",korean:"밥"},{thai:"래우",korean:"벌써"},{thai:"루",korean:"or"},{thai:"양",korean:"아직"}] },
-  { id:"j4", thai:"폼 리안 파싸타이 유 캅, 풋 차차 너이 다이 마이 캅?", korean:"저 태국어 배우고 있어요, 천천히 말해줄 수 있나요?", note:"모르는 척할 때", vocab:[{thai:"유",korean:"~하고 있다"},{thai:"다이 마이",korean:"~할 수 있어?"}] },
-  { id:"j5", thai:"러 막막 러~!", korean:"완전 잘생겼어요!", note:"남자한테 칭찬", vocab:[{thai:"러",korean:"잘생기다"},{thai:"막막",korean:"엄청"}] },
-];
 
-const STATIC_VOCAB = {
-  "동사": [{thai:"낀",korean:"먹다"},{thai:"리안",korean:"배우다"},{thai:"풋",korean:"말하다"},{thai:"마",korean:"오다"},{thai:"빠이",korean:"가다"},{thai:"탐응안",korean:"일하다"},{thai:"탐",korean:"하다"},{thai:"츤",korean:"모시다"},{thai:"뻰/뺀",korean:"~이다"},{thai:"윳",korean:"멈추다"},{thai:"빠이눈",korean:"저쪽으로 가"},{thai:"마니",korean:"이리 와"}],
-  "명사": [{thai:"카우",korean:"밥"},{thai:"아깟",korean:"날씨"},{thai:"머~",korean:"의사"},{thai:"파싸",korean:"언어"},{thai:"똡므",korean:"박수"},{thai:"탕카우",korean:"입구"},{thai:"탕억",korean:"출구"},{thai:"탕눈",korean:"저쪽"},{thai:"눈",korean:"저기"},{thai:"카우팟",korean:"볶음밥"},{thai:"완니",korean:"오늘"}],
-  "형용사/부사": [{thai:"차차",korean:"천천히"},{thai:"너이",korean:"조금"},{thai:"막막",korean:"엄청"},{thai:"런",korean:"덥다"},{thai:"느어이",korean:"피곤하다"},{thai:"싸눅",korean:"재밌다"},{thai:"쑤~어이",korean:"예쁘다"},{thai:"러",korean:"잘생기다"},{thai:"땅짜이",korean:"열심히"}],
-  "표현/조사": [{thai:"캅",korean:"정중한 어미 (남자)"},{thai:"카",korean:"정중한 어미 (여자)"},{thai:"마이캅?",korean:"~인가요?"},{thai:"래",korean:"그리고"},{thai:"르~",korean:"또는"},{thai:"양",korean:"아직"},{thai:"래우",korean:"이미/벌써"},{thai:"깜랑",korean:"~하고 있어"},{thai:"짜",korean:"~할 것이다"},{thai:"때",korean:"그러나"},{thai:"다이 마이",korean:"~할 수 있어?"}],
-};
 
 const INITIAL_LESSONS = {
   "5/23": {
-    label:"5월 23일", topic:"클리닉 소개 · 날씨 · 식사", jokeIds:["j1"],
+    label:"5월 23일", topic:"클리닉 소개 · 날씨 · 식사",
     sentences:[
       {id:"s1",thai:"넝 콘니 츠 크리스 캅",korean:"이 동생 이름은 크리스입니다",vocab:[{thai:"넝",korean:"동생"},{thai:"콘니",korean:"이 사람"},{thai:"츠",korean:"이름"}]},
       {id:"s2",thai:"뻰머~ 까올리 츠 크리닉 셀리닉 티 청담캅",korean:"한국 의사고 청담에 셀리닉이라는 클리닉이 있어요",vocab:[{thai:"뻰",korean:"~이다"},{thai:"머~",korean:"의사"},{thai:"티",korean:"장소"}]},
@@ -31,7 +18,7 @@ const INITIAL_LESSONS = {
     ],
   },
   "5/25": {
-    label:"5월 25일", topic:"감사 인사 · 발표", jokeIds:["j2","j3"],
+    label:"5월 25일", topic:"감사 인사 · 발표",
     sentences:[
       {id:"p1",thai:"컵쿤 막막 캅",korean:"정말 감사합니다",vocab:[{thai:"컵쿤",korean:"감사하다"},{thai:"막막",korean:"엄청"}]},
       {id:"p2",thai:"완니 디 짠 마이 캅?",korean:"오늘 즐거우셨나요?",vocab:[{thai:"완니",korean:"오늘"},{thai:"디",korean:"좋다"},{thai:"짠",korean:"기쁘다"}]},
@@ -162,13 +149,10 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
   const [newKey, setNewKey] = useState("");
   const [newTopic, setNewTopic] = useState("");
   const [sents, setSents] = useState([blank()]);
-  const [selectedJokeIds, setSelectedJokeIds] = useState([]);
   const [customJokes, setCustomJokes] = useState([]);
 
-  const toggleJoke = (id) =>
-    setSelectedJokeIds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
   const addCustomJoke = () =>
-    setCustomJokes(p => [...p, {thai:"", korean:"", note:"", vocab:[{thai:"",korean:""}]}]);
+    setCustomJokes(p => [...p, {thai:"", thaiScript:"", korean:"", note:"", vocab:[{thai:"",thaiScript:"",korean:""}]}]);
   const removeCustomJoke = ji =>
     setCustomJokes(p => p.filter((_, i) => i !== ji));
   const updateCustomJoke = (ji, field, val) =>
@@ -223,7 +207,7 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
       vocab: s.vocab.filter(v => v.thai.trim()).map(v => ({thai:v.thai.trim(), thaiScript:v.thaiScript?.trim()||"", korean:v.korean.trim()}))
     }));
     if (mode === "new" && !validSents.length) return;
-    onSave({ mode, key, topic: newTopic, sents: validSents, jokeIds: selectedJokeIds,
+    onSave({ mode, key, topic: newTopic, sents: validSents,
       editSents: mode === "existing" ? editSents : undefined,
       customJokes: customJokes.filter(j => j.thai.trim()).map(j => ({
         ...j, vocab: j.vocab.filter(v => v.thai.trim())
@@ -281,7 +265,10 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
           <p style={{margin:"0 0 10px",fontSize:"12px",fontWeight:500,color:"var(--color-text-secondary)"}}>기존 문장 수정</p>
           {editSents.map((s, si) => (
             <div key={s.id||si} style={{background:"var(--color-background-secondary)",borderRadius:"var(--border-radius-md)",padding:"14px",marginBottom:"10px",border:`0.5px solid ${uColor}30`}}>
-              <span style={{fontSize:"12px",fontWeight:500,color:"var(--color-text-secondary)",display:"block",marginBottom:"10px"}}>문장 {si + 1}</span>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}}>
+                <span style={{fontSize:"12px",fontWeight:500,color:"var(--color-text-secondary)"}}>문장 {si + 1}</span>
+                <button onClick={() => setEditSents(p => p.filter((_, i) => i !== si))} style={{background:"none",border:"none",cursor:"pointer",color:"#C0392B",fontSize:"12px",padding:"2px 6px"}}>× 문장 삭제</button>
+              </div>
               <div style={{marginBottom:"8px"}}>
                 <label style={{display:"block",fontSize:"11px",color:"var(--color-text-tertiary)",marginBottom:"4px",fontWeight:500}}>태국어 (한글 발음)</label>
                 <input value={s.thai} onChange={e => updateExistSent(si, "thai", e.target.value)}
@@ -409,6 +396,11 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
                 style={{width:"100%",padding:"8px 10px",border:`0.5px solid ${j.thai?"#EF9F27":"#D8BF90"}`,borderRadius:"var(--border-radius-md)",fontSize:"14px",boxSizing:"border-box",outline:"none",background:"#fff",color:"#633806",fontWeight:j.thai?500:400}} />
             </div>
             <div style={{marginBottom:"6px"}}>
+              <label style={{display:"block",fontSize:"11px",color:"#1A936F",marginBottom:"3px",fontWeight:500}}>태국 문자 (선택사항 · 듣기 기능용)</label>
+              <input value={j.thaiScript||""} onChange={e => updateCustomJoke(ji,"thaiScript",e.target.value)} placeholder="예: วันนี้สวยมากครับ"
+                style={{width:"100%",padding:"8px 10px",border:`0.5px solid ${j.thaiScript?"#1A936F":"#D8BF90"}`,borderRadius:"var(--border-radius-md)",fontSize:"14px",boxSizing:"border-box",outline:"none",background:"#fff",color:"#1A936F",fontWeight:j.thaiScript?500:400}} />
+            </div>
+            <div style={{marginBottom:"6px"}}>
               <label style={{display:"block",fontSize:"11px",color:"#854F0B",marginBottom:"3px",fontWeight:500}}>뜻 (한국어)</label>
               <input value={j.korean} onChange={e => updateCustomJoke(ji,"korean",e.target.value)} placeholder="예: 오늘 예쁘네요?"
                 style={{width:"100%",padding:"8px 10px",border:"0.5px solid #D8BF90",borderRadius:"var(--border-radius-md)",fontSize:"13px",boxSizing:"border-box",outline:"none",background:"#fff"}} />
@@ -421,15 +413,19 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
             <div style={{marginTop:"8px"}}>
               <label style={{display:"block",fontSize:"11px",color:"#854F0B",marginBottom:"6px",fontWeight:500}}>단어 (선택사항)</label>
               {j.vocab.map((v, vi) => (
-                <div key={vi} style={{display:"flex",gap:"6px",marginBottom:"5px",alignItems:"center"}}>
-                  <input value={v.thai} onChange={e => updateJokeVocab(ji,vi,"thai",e.target.value)} placeholder="태국어"
-                    style={{flex:1,padding:"6px 8px",border:`0.5px solid ${v.thai?"#EF9F27":"#D8BF90"}`,borderRadius:"var(--border-radius-md)",fontSize:"12px",outline:"none",color:"#633806",fontWeight:v.thai?500:400,background:"#fff"}} />
-                  <span style={{color:"#B08040",fontSize:"12px",flexShrink:0}}>→</span>
-                  <input value={v.korean} onChange={e => updateJokeVocab(ji,vi,"korean",e.target.value)} placeholder="뜻"
-                    style={{flex:1,padding:"6px 8px",border:"0.5px solid #D8BF90",borderRadius:"var(--border-radius-md)",fontSize:"12px",outline:"none",background:"#fff"}} />
-                  {j.vocab.length > 1 && (
-                    <button onClick={() => removeJokeVocab(ji,vi)} style={{background:"none",border:"none",cursor:"pointer",color:"#B08040",fontSize:"16px",padding:"0 2px",flexShrink:0,lineHeight:1}}>×</button>
-                  )}
+                <div key={vi} style={{marginBottom:"8px"}}>
+                  <div style={{display:"flex",gap:"6px",marginBottom:"4px",alignItems:"center"}}>
+                    <input value={v.thai} onChange={e => updateJokeVocab(ji,vi,"thai",e.target.value)} placeholder="발음"
+                      style={{flex:1,padding:"6px 8px",border:`0.5px solid ${v.thai?"#EF9F27":"#D8BF90"}`,borderRadius:"var(--border-radius-md)",fontSize:"12px",outline:"none",color:"#633806",fontWeight:v.thai?500:400,background:"#fff"}} />
+                    <span style={{color:"#B08040",fontSize:"12px",flexShrink:0}}>→</span>
+                    <input value={v.korean} onChange={e => updateJokeVocab(ji,vi,"korean",e.target.value)} placeholder="뜻"
+                      style={{flex:1,padding:"6px 8px",border:"0.5px solid #D8BF90",borderRadius:"var(--border-radius-md)",fontSize:"12px",outline:"none",background:"#fff"}} />
+                    {j.vocab.length > 1 && (
+                      <button onClick={() => removeJokeVocab(ji,vi)} style={{background:"none",border:"none",cursor:"pointer",color:"#B08040",fontSize:"16px",padding:"0 2px",flexShrink:0,lineHeight:1}}>×</button>
+                    )}
+                  </div>
+                  <input value={v.thaiScript||""} onChange={e => updateJokeVocab(ji,vi,"thaiScript",e.target.value)} placeholder="태국 문자 (예: กิน)"
+                    style={{width:"100%",padding:"5px 8px",border:`0.5px solid ${v.thaiScript?"#1A936F":"#D8BF90"}`,borderRadius:"var(--border-radius-md)",fontSize:"12px",outline:"none",color:"#1A936F",fontWeight:v.thaiScript?500:400,background:"#fff",boxSizing:"border-box"}} />
                 </div>
               ))}
               <button onClick={() => addJokeVocab(ji)}
@@ -559,10 +555,7 @@ export default function ThaiApp() {
   const lesson = lessons[lessonKey];
   const sentences = lesson?.sentences || [];
   const cur = sentences[idx] || sentences[0];
-  const lessonJokes = [
-    ...ALL_JOKES.filter(j => (lesson?.jokeIds||[]).includes(j.id)),
-    ...(lesson?.lessonJokes || [])
-  ];
+  const lessonJokes = lesson?.lessonJokes || [];
   const usedL = myRaw.used?.[lessonKey] || {};
   const jokeUsedL = myRaw.jokeUsed?.[lessonKey] || {};
   const totalChecks = sentences.length + lessonJokes.length;
@@ -571,13 +564,10 @@ export default function ThaiApp() {
   const curUser = users.find(u => u.id === currentUserId);
   const uColor = curUser ? PALETTE[curUser.ci % PALETTE.length] : "#D85A30";
 
-  // Dynamic vocab = static + lesson vocab (no duplicates — skip words already in static)
   const getDictCats = () => {
-    const staticKeys = new Set(Object.values(STATIC_VOCAB).flat().map(v => v.thai));
     const lessonV = Object.values(lessons).flatMap(l => l.sentences.flatMap(s => s.vocab || []));
-    const uniqueL = [...new Map(lessonV.map(v => [v.thai, v])).values()]
-      .filter(v => !staticKeys.has(v.thai));
-    return { ...STATIC_VOCAB, "📚 수업 단어": uniqueL };
+    const uniqueL = [...new Map(lessonV.map(v => [v.thai, v])).values()];
+    return uniqueL.length ? { "📚 수업 단어": uniqueL } : {};
   };
   const dictCats = getDictCats();
   const allDictVocab = (() => {
@@ -669,25 +659,24 @@ export default function ThaiApp() {
   };
 
   // ── Lesson save ──
-  const handleLessonSave = ({mode, key, topic, sents, jokeIds, customJokes, editSents}) => {
+  const handleLessonSave = ({mode, key, topic, sents, customJokes, editSents}) => {
     const newLessonJokes = (customJokes||[]).filter(j => j.thai.trim()).map((j, i) => ({
       id: `lj_${key}_${Date.now()}_${i}`,
-      thai: j.thai.trim(), korean: j.korean.trim(), note: j.note.trim(),
-      vocab: []
+      thai: j.thai.trim(), thaiScript: j.thaiScript?.trim()||"", korean: j.korean.trim(), note: j.note?.trim()||"",
+      vocab: (j.vocab||[]).filter(v => v.thai.trim()).map(v => ({thai:v.thai.trim(), thaiScript:v.thaiScript?.trim()||"", korean:v.korean.trim()}))
     }));
     if (mode === "new") {
-      setLessons(p => ({...p, [key]: {label:key, topic:topic||"새 수업", sentences:sents, jokeIds:jokeIds||[], lessonJokes:newLessonJokes}}));
+      setLessons(p => ({...p, [key]: {label:key, topic:topic||"새 수업", sentences:sents, lessonJokes:newLessonJokes}}));
       setLessonKey(key);
     } else {
       setLessons(p => {
         const existing = p[key];
-        const mergedJokes = [...new Set([...(existing.jokeIds||[]), ...(jokeIds||[])])];
         const mergedLessonJokes = [...(existing.lessonJokes||[]), ...newLessonJokes];
         // 기존 문장은 editSents로 교체 (단어 수정 반영), 새 문장은 뒤에 추가
         const updatedExisting = editSents
           ? editSents.map(s => ({...s, vocab: (s.vocab||[]).filter(v => v.thai.trim())}))
           : existing.sentences;
-        return {...p, [key]: {...existing, sentences:[...updatedExisting, ...sents], jokeIds:mergedJokes, lessonJokes:mergedLessonJokes}};
+        return {...p, [key]: {...existing, sentences:[...updatedExisting, ...sents], lessonJokes:mergedLessonJokes}};
       });
       setLessonKey(key);
     }
@@ -765,7 +754,7 @@ export default function ThaiApp() {
       Object.entries(ud.jokeUsed || {}).forEach(([lk, jokeMap]) => {
         const lesson = lessons[lk];
         Object.entries(jokeMap).forEach(([jid, rec]) => {
-          const joke = [...ALL_JOKES, ...(lesson?.lessonJokes||[])].find(j => j.id === jid);
+          const joke = (lesson?.lessonJokes||[]).find(j => j.id === jid);
           rows.push([u.name, lesson?.label||lk, "농담", joke?.thai||jid, joke?.korean||"", rec.time||"", rec.answer||"", rec.answerMeaning||""]);
         });
       });
