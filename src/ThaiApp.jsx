@@ -62,14 +62,20 @@ function Karaoke({ text, active, size = 22 }) {
   );
 }
 
-function Pills({ vocab }) {
+function Pills({ vocab, onSpeak }) {
   return (
     <div style={{display:"flex",flexWrap:"wrap",gap:"6px",justifyContent:"center"}}>
       {vocab.map((v, i) => (
         <span key={i} style={{background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"20px",padding:"5px 12px",fontSize:"13px",display:"flex",gap:"6px",alignItems:"center"}}>
           <span style={{color:"#D85A30",fontWeight:500}}>{v.thai}</span>
+          {v.thaiScript && <span style={{color:"#1A936F",fontWeight:500,fontSize:"12px"}}>{v.thaiScript}</span>}
           <span style={{color:"var(--color-text-tertiary)"}}>·</span>
           <span style={{color:"var(--color-text-secondary)"}}>{v.korean}</span>
+          {v.thaiScript && onSpeak && (
+            <button onClick={() => onSpeak(v.thaiScript)} style={{background:"none",border:"none",cursor:"pointer",color:"#1A936F",fontSize:"13px",padding:"0",lineHeight:1,display:"flex",alignItems:"center"}}>
+              <i className="ti ti-volume" aria-hidden="true" />
+            </button>
+          )}
         </span>
       ))}
     </div>
@@ -77,14 +83,22 @@ function Pills({ vocab }) {
 }
 
 // CheckCard is outside ThaiApp so it doesn't remount on parent state changes
-function CheckCard({ type, id, thai, korean, jokeNote, isUsed, isEntering, record, draft, draftMeaning, uColor, onStartCheck, onSaveCheck, onEditCheck, onUncheck, onSpeak, onDraftChange, onDraftMeaningChange }) {
+function CheckCard({ type, id, thai, thaiScript, korean, jokeNote, isUsed, isEntering, record, draft, draftMeaning, uColor, onStartCheck, onSaveCheck, onEditCheck, onUncheck, onSpeak, onDraftChange, onDraftMeaningChange }) {
   return (
     <div style={{background:"var(--color-background-primary)",border:`0.5px solid ${isUsed?"#97C459":isEntering?uColor:"var(--color-border-tertiary)"}`,borderRadius:"var(--border-radius-lg)",padding:"16px",marginBottom:"12px",transition:"border-color 0.2s"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"12px"}}>
         <div style={{flex:1}}>
           {jokeNote && <span style={{fontSize:"11px",background:"#FAEEDA",color:"#854F0B",padding:"2px 8px",borderRadius:"10px",marginBottom:"6px",display:"inline-block"}}>농담 · {jokeNote}</span>}
           <p style={{margin:jokeNote?"4px 0 0":0,fontSize:"18px",color:uColor,fontWeight:500,lineHeight:1.5}}>{thai}</p>
-          <p style={{margin:"4px 0 0",fontSize:"12px",color:"var(--color-text-secondary)"}}>{korean}</p>
+          {thaiScript && (
+            <div style={{display:"flex",alignItems:"center",gap:"8px",margin:"4px 0 2px"}}>
+              <span style={{fontSize:"15px",color:"#1A936F",fontWeight:500}}>{thaiScript}</span>
+              <button onClick={() => onSpeak?.(thaiScript)} style={{background:"none",border:"none",cursor:"pointer",color:"#1A936F",fontSize:"14px",padding:"0",lineHeight:1,display:"flex",alignItems:"center"}}>
+                <i className="ti ti-volume" aria-hidden="true" />
+              </button>
+            </div>
+          )}
+          <p style={{margin:"2px 0 0",fontSize:"12px",color:"var(--color-text-secondary)"}}>{korean}</p>
         </div>
         {!isUsed ? (
           <button onClick={onStartCheck} style={{background:isEntering?"#FAECE7":"var(--color-background-secondary)",border:`0.5px solid ${isEntering?uColor:"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",padding:"8px 14px",fontSize:"12px",cursor:"pointer",color:isEntering?uColor:"var(--color-text-secondary)",display:"flex",alignItems:"center",gap:"5px",whiteSpace:"nowrap",flexShrink:0}}>
@@ -142,7 +156,7 @@ function CheckCard({ type, id, thai, korean, jokeNote, isUsed, isEntering, recor
 
 // LessonForm manages its own form state — typing doesn't cause parent remount
 function LessonForm({ existingLessons, uColor, onSave, onClose }) {
-  const blank = () => ({ thai:"", korean:"", vocab:[{thai:"",korean:""}] });
+  const blank = () => ({ thai:"", thaiScript:"", korean:"", vocab:[{thai:"",thaiScript:"",korean:""}] });
   const [mode, setMode] = useState("existing");
   const [targetKey, setTargetKey] = useState(Object.keys(existingLessons)[0] || "");
   const [newKey, setNewKey] = useState("");
@@ -171,7 +185,7 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
   const updateVocab = (si, vi, field, val) =>
     setSents(p => p.map((s, i) => i !== si ? s : {...s, vocab: s.vocab.map((v, j) => j === vi ? {...v, [field]: val} : v)}));
   const addVocab = si =>
-    setSents(p => p.map((s, i) => i !== si ? s : {...s, vocab: [...s.vocab, {thai:"",korean:""}]}));
+    setSents(p => p.map((s, i) => i !== si ? s : {...s, vocab: [...s.vocab, {thai:"",thaiScript:"",korean:""}]}));
   const removeVocab = (si, vi) =>
     setSents(p => p.map((s, i) => i !== si ? s : {...s, vocab: s.vocab.filter((_, j) => j !== vi)}));
   const addSent = () => setSents(p => [...p, blank()]);
@@ -196,7 +210,7 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
   const updateExistVocab = (si, vi, field, val) =>
     setEditSents(p => p.map((s, i) => i !== si ? s : {...s, vocab: (s.vocab||[]).map((v, j) => j === vi ? {...v, [field]: val} : v)}));
   const addExistVocab = si =>
-    setEditSents(p => p.map((s, i) => i !== si ? s : {...s, vocab: [...(s.vocab||[]), {thai:"",korean:""}]}));
+    setEditSents(p => p.map((s, i) => i !== si ? s : {...s, vocab: [...(s.vocab||[]), {thai:"",thaiScript:"",korean:""}]}));
   const removeExistVocab = (si, vi) =>
     setEditSents(p => p.map((s, i) => i !== si ? s : {...s, vocab: (s.vocab||[]).filter((_, j) => j !== vi)}));
 
@@ -205,8 +219,8 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
     if (!key) return;
     const validSents = sents.filter(s => s.thai.trim()).map((s, i) => ({
       id: `t_${key}_${Date.now()}_${i}`,
-      thai: s.thai.trim(), korean: s.korean.trim(),
-      vocab: s.vocab.filter(v => v.thai.trim()).map(v => ({thai:v.thai.trim(), korean:v.korean.trim()}))
+      thai: s.thai.trim(), thaiScript: s.thaiScript?.trim()||"", korean: s.korean.trim(),
+      vocab: s.vocab.filter(v => v.thai.trim()).map(v => ({thai:v.thai.trim(), thaiScript:v.thaiScript?.trim()||"", korean:v.korean.trim()}))
     }));
     if (mode === "new" && !validSents.length) return;
     onSave({ mode, key, topic: newTopic, sents: validSents, jokeIds: selectedJokeIds,
@@ -273,6 +287,12 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
                 <input value={s.thai} onChange={e => updateExistSent(si, "thai", e.target.value)}
                   style={{width:"100%",padding:"9px 12px",border:`0.5px solid ${s.thai?uColor:"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"16px",boxSizing:"border-box",outline:"none",fontWeight:500,color:uColor,background:"var(--color-background-primary)"}} />
               </div>
+              <div style={{marginBottom:"8px"}}>
+                <label style={{display:"block",fontSize:"11px",color:"#1A936F",marginBottom:"4px",fontWeight:500}}>태국 문자 (선택사항 · 듣기 기능용)</label>
+                <input value={s.thaiScript||""} onChange={e => updateExistSent(si, "thaiScript", e.target.value)}
+                  placeholder="예: กินข้าวมาแล้วหรือยังครับ"
+                  style={{width:"100%",padding:"9px 12px",border:`0.5px solid ${s.thaiScript?"#1A936F":"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"16px",boxSizing:"border-box",outline:"none",fontWeight:500,color:"#1A936F",background:"var(--color-background-primary)"}} />
+              </div>
               <div style={{marginBottom:"12px"}}>
                 <label style={{display:"block",fontSize:"11px",color:"var(--color-text-tertiary)",marginBottom:"4px",fontWeight:500}}>뜻 (한국어)</label>
                 <input value={s.korean} onChange={e => updateExistSent(si, "korean", e.target.value)}
@@ -281,15 +301,19 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
               <div>
                 <label style={{display:"block",fontSize:"11px",color:"var(--color-text-tertiary)",marginBottom:"8px",fontWeight:500}}>단어</label>
                 {(s.vocab||[]).map((v, vi) => (
-                  <div key={vi} style={{display:"flex",gap:"6px",marginBottom:"6px",alignItems:"center"}}>
-                    <input value={v.thai} onChange={e => updateExistVocab(si, vi, "thai", e.target.value)} placeholder="태국어"
-                      style={{flex:1,padding:"7px 10px",border:`0.5px solid ${v.thai?uColor:"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"13px",outline:"none",color:uColor,fontWeight:v.thai?500:400,background:"var(--color-background-primary)"}} />
-                    <span style={{color:"var(--color-text-tertiary)",fontSize:"13px",flexShrink:0}}>→</span>
-                    <input value={v.korean} onChange={e => updateExistVocab(si, vi, "korean", e.target.value)} placeholder="뜻"
-                      style={{flex:1,padding:"7px 10px",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",fontSize:"13px",outline:"none",background:"var(--color-background-primary)"}} />
-                    {(s.vocab||[]).length > 1 && (
-                      <button onClick={() => removeExistVocab(si, vi)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--color-text-tertiary)",fontSize:"18px",padding:"0 4px",flexShrink:0,lineHeight:1}}>×</button>
-                    )}
+                  <div key={vi} style={{marginBottom:"8px"}}>
+                    <div style={{display:"flex",gap:"6px",marginBottom:"4px",alignItems:"center"}}>
+                      <input value={v.thai} onChange={e => updateExistVocab(si, vi, "thai", e.target.value)} placeholder="발음"
+                        style={{flex:1,padding:"7px 10px",border:`0.5px solid ${v.thai?uColor:"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"13px",outline:"none",color:uColor,fontWeight:v.thai?500:400,background:"var(--color-background-primary)"}} />
+                      <span style={{color:"var(--color-text-tertiary)",fontSize:"13px",flexShrink:0}}>→</span>
+                      <input value={v.korean} onChange={e => updateExistVocab(si, vi, "korean", e.target.value)} placeholder="뜻"
+                        style={{flex:1,padding:"7px 10px",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",fontSize:"13px",outline:"none",background:"var(--color-background-primary)"}} />
+                      {(s.vocab||[]).length > 1 && (
+                        <button onClick={() => removeExistVocab(si, vi)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--color-text-tertiary)",fontSize:"18px",padding:"0 4px",flexShrink:0,lineHeight:1}}>×</button>
+                      )}
+                    </div>
+                    <input value={v.thaiScript||""} onChange={e => updateExistVocab(si, vi, "thaiScript", e.target.value)} placeholder="태국 문자 (예: กิน)"
+                      style={{width:"100%",padding:"6px 10px",border:`0.5px solid ${v.thaiScript?"#1A936F":"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"13px",outline:"none",color:"#1A936F",fontWeight:v.thaiScript?500:400,background:"var(--color-background-primary)",boxSizing:"border-box"}} />
                   </div>
                 ))}
                 <button onClick={() => addExistVocab(si)}
@@ -319,6 +343,13 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
               style={{width:"100%",padding:"9px 12px",border:`0.5px solid ${s.thai?uColor:"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"16px",boxSizing:"border-box",outline:"none",fontWeight:500,color:uColor,background:"var(--color-background-primary)"}} />
           </div>
 
+          <div style={{marginBottom:"8px"}}>
+            <label style={{display:"block",fontSize:"11px",color:"#1A936F",marginBottom:"4px",fontWeight:500}}>태국 문자 (선택사항 · 듣기 기능용)</label>
+            <input value={s.thaiScript||""} onChange={e => updateSent(si, "thaiScript", e.target.value)}
+              placeholder="예: กินข้าวมาแล้วหรือยังครับ"
+              style={{width:"100%",padding:"9px 12px",border:`0.5px solid ${s.thaiScript?"#1A936F":"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"16px",boxSizing:"border-box",outline:"none",fontWeight:500,color:"#1A936F",background:"var(--color-background-primary)"}} />
+          </div>
+
           <div style={{marginBottom:"12px"}}>
             <label style={{display:"block",fontSize:"11px",color:"var(--color-text-tertiary)",marginBottom:"4px",fontWeight:500}}>뜻 (한국어)</label>
             <input value={s.korean} onChange={e => updateSent(si, "korean", e.target.value)}
@@ -329,15 +360,19 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
           <div>
             <label style={{display:"block",fontSize:"11px",color:"var(--color-text-tertiary)",marginBottom:"8px",fontWeight:500}}>단어</label>
             {s.vocab.map((v, vi) => (
-              <div key={vi} style={{display:"flex",gap:"6px",marginBottom:"6px",alignItems:"center"}}>
-                <input value={v.thai} onChange={e => updateVocab(si, vi, "thai", e.target.value)} placeholder="태국어"
-                  style={{flex:1,padding:"7px 10px",border:`0.5px solid ${v.thai?uColor:"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"13px",outline:"none",color:uColor,fontWeight:v.thai?500:400,background:"var(--color-background-primary)"}} />
-                <span style={{color:"var(--color-text-tertiary)",fontSize:"13px",flexShrink:0}}>→</span>
-                <input value={v.korean} onChange={e => updateVocab(si, vi, "korean", e.target.value)} placeholder="뜻"
-                  style={{flex:1,padding:"7px 10px",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",fontSize:"13px",outline:"none",background:"var(--color-background-primary)"}} />
-                {s.vocab.length > 1 && (
-                  <button onClick={() => removeVocab(si, vi)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--color-text-tertiary)",fontSize:"18px",padding:"0 4px",flexShrink:0,lineHeight:1}}>×</button>
-                )}
+              <div key={vi} style={{marginBottom:"8px"}}>
+                <div style={{display:"flex",gap:"6px",marginBottom:"4px",alignItems:"center"}}>
+                  <input value={v.thai} onChange={e => updateVocab(si, vi, "thai", e.target.value)} placeholder="발음"
+                    style={{flex:1,padding:"7px 10px",border:`0.5px solid ${v.thai?uColor:"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"13px",outline:"none",color:uColor,fontWeight:v.thai?500:400,background:"var(--color-background-primary)"}} />
+                  <span style={{color:"var(--color-text-tertiary)",fontSize:"13px",flexShrink:0}}>→</span>
+                  <input value={v.korean} onChange={e => updateVocab(si, vi, "korean", e.target.value)} placeholder="뜻"
+                    style={{flex:1,padding:"7px 10px",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",fontSize:"13px",outline:"none",background:"var(--color-background-primary)"}} />
+                  {s.vocab.length > 1 && (
+                    <button onClick={() => removeVocab(si, vi)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--color-text-tertiary)",fontSize:"18px",padding:"0 4px",flexShrink:0,lineHeight:1}}>×</button>
+                  )}
+                </div>
+                <input value={v.thaiScript||""} onChange={e => updateVocab(si, vi, "thaiScript", e.target.value)} placeholder="태국 문자 (예: กิน)"
+                  style={{width:"100%",padding:"6px 10px",border:`0.5px solid ${v.thaiScript?"#1A936F":"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-md)",fontSize:"13px",outline:"none",color:"#1A936F",fontWeight:v.thaiScript?500:400,background:"var(--color-background-primary)",boxSizing:"border-box"}} />
               </div>
             ))}
             <button onClick={() => addVocab(si)}
@@ -554,27 +589,16 @@ export default function ThaiApp() {
     return base.filter(v => v.thai.toLowerCase().includes(q) || v.korean.includes(q));
   })();
 
-  // ── TTS ──
+  // ── TTS (태국어) ──
   const clearT = () => { timers.current.forEach(clearTimeout); timers.current = []; };
-  const speak = (text) => {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel(); clearT();
-    const words = text.split(" ");
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "ko-KR"; u.rate = 0.75; u.pitch = 1.05;
-    setSpeaking(true); setKIdx(0);
-    let t = 150;
-    words.forEach((w, i) => {
-      const d = 280 + [...w].filter(c => /[가-힣]/.test(c)).length * 190;
-      timers.current.push(setTimeout(() => setKIdx(i), t));
-      t += d;
-    });
-    timers.current.push(setTimeout(() => { setSpeaking(false); setKIdx(-1); }, t + 100));
-    u.onend = () => { clearT(); setSpeaking(false); setKIdx(-1); };
-    u.onerror = () => { clearT(); setSpeaking(false); setKIdx(-1); };
+  const speak = (thaiScript) => {
+    if (!window.speechSynthesis || !thaiScript?.trim()) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(thaiScript);
+    u.lang = "th-TH";
     window.speechSynthesis.speak(u);
   };
-  const stopSpeak = () => { window.speechSynthesis?.cancel(); clearT(); setSpeaking(false); setKIdx(-1); };
+  const stopSpeak = () => { window.speechSynthesis?.cancel(); };
 
   // ── Check ──
   const startCheck = (type, id) => { setEntering({type, id}); setDraft(""); setDraftMeaning(""); };
@@ -936,8 +960,15 @@ export default function ThaiApp() {
                 </div>
               )}
               <Karaoke text={cur.thai} active={-1} size={26} />
-              {showKo && <p style={{textAlign:"center",fontSize:"14px",color:"var(--color-text-secondary)",margin:"16px 0 0",lineHeight:1.7}}>{cur.korean}</p>}
-              <div style={{display:"flex",gap:"8px",justifyContent:"center",marginTop:"22px"}}>
+              {cur.thaiScript && <p style={{textAlign:"center",fontSize:"18px",color:"#1A936F",margin:"10px 0 0",fontWeight:500,lineHeight:1.6}}>{cur.thaiScript}</p>}
+              {showKo && <p style={{textAlign:"center",fontSize:"14px",color:"var(--color-text-secondary)",margin:"10px 0 0",lineHeight:1.7}}>{cur.korean}</p>}
+              <div style={{display:"flex",gap:"8px",justifyContent:"center",marginTop:"18px"}}>
+                {cur.thaiScript && (
+                  <button onClick={() => speak(cur.thaiScript)}
+                    style={{background:"#E8F7F2",color:"#1A936F",border:"0.5px solid #1A936F",borderRadius:"var(--border-radius-md)",padding:"10px 20px",fontSize:"14px",cursor:"pointer",display:"flex",alignItems:"center",gap:"7px",fontWeight:500}}>
+                    <i className="ti ti-volume" aria-hidden="true" /> 듣기
+                  </button>
+                )}
                 <button onClick={() => setShowKo(v => !v)}
                   style={{background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-md)",padding:"10px 14px",fontSize:"16px",cursor:"pointer",color:"var(--color-text-secondary)"}}>
                   <i className={`ti ${showKo?"ti-eye-off":"ti-eye"}`} aria-hidden="true" />
@@ -947,7 +978,7 @@ export default function ThaiApp() {
             {cur.vocab?.length > 0 && (
               <div style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",padding:"16px",marginBottom:"12px"}}>
                 <p style={{margin:"0 0 12px",fontSize:"12px",color:"var(--color-text-secondary)",fontWeight:500}}>단어 정리</p>
-                <Pills vocab={cur.vocab} />
+                <Pills vocab={cur.vocab} onSpeak={speak} />
               </div>
             )}
           </>}
@@ -955,11 +986,20 @@ export default function ThaiApp() {
           {lessonJokes.map(j => (
             <div key={j.id} style={{background:"#FAEEDA",border:"0.5px solid #EF9F27",borderRadius:"var(--border-radius-lg)",padding:"16px",marginBottom:"12px"}}>
               <p style={{margin:"0 0 12px",fontSize:"12px",color:"#854F0B",fontWeight:500}}>오늘의 농담 · {j.note}</p>
-              <div style={{background:"rgba(255,255,255,0.55)",borderRadius:"var(--border-radius-md)",padding:"14px",marginBottom:"12px"}}>
+              <div style={{background:"rgba(255,255,255,0.55)",borderRadius:"var(--border-radius-md)",padding:"14px",marginBottom:"8px"}}>
                 <Karaoke text={j.thai} active={-1} size={17} />
+                {j.thaiScript && <p style={{textAlign:"center",fontSize:"16px",color:"#1A936F",margin:"8px 0 0",fontWeight:500}}>{j.thaiScript}</p>}
               </div>
               <p style={{fontSize:"13px",color:"#633806",textAlign:"center",margin:"0 0 12px"}}>{j.korean}</p>
-              <Pills vocab={j.vocab} />
+              <Pills vocab={j.vocab} onSpeak={speak} />
+              {j.thaiScript && (
+                <div style={{display:"flex",justifyContent:"center",marginTop:"10px"}}>
+                  <button onClick={() => speak(j.thaiScript)}
+                    style={{background:"none",border:"0.5px solid #1A936F",color:"#1A936F",borderRadius:"var(--border-radius-md)",padding:"7px 16px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px"}}>
+                    <i className="ti ti-volume" aria-hidden="true" /> 듣기
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </>}
@@ -968,7 +1008,7 @@ export default function ThaiApp() {
         {tab === "practice" && <>
           <p style={{margin:"0 0 18px",fontSize:"13px",color:"var(--color-text-secondary)",lineHeight:1.7}}>실제로 사용한 문장을 체크하고, 상대방 답변을 기록해봐요.</p>
           {sentences.map(s => (
-            <CheckCard key={s.id} type="sent" id={s.id} thai={s.thai} korean={s.korean}
+            <CheckCard key={s.id} type="sent" id={s.id} thai={s.thai} thaiScript={s.thaiScript} korean={s.korean}
               isUsed={!!usedL[s.id]} isEntering={entering?.type==="sent" && entering?.id===s.id}
               record={usedL[s.id]} draft={draft} draftMeaning={draftMeaning} uColor={uColor}
               onStartCheck={() => startCheck("sent", s.id)}
@@ -984,7 +1024,7 @@ export default function ThaiApp() {
               <div style={{flex:1,height:"0.5px",background:"var(--color-border-tertiary)"}} />
             </div>
             {lessonJokes.map(j => (
-              <CheckCard key={j.id} type="joke" id={j.id} thai={j.thai} korean={j.korean} jokeNote={j.note}
+              <CheckCard key={j.id} type="joke" id={j.id} thai={j.thai} thaiScript={j.thaiScript} korean={j.korean} jokeNote={j.note}
                 isUsed={!!jokeUsedL[j.id]} isEntering={entering?.type==="joke" && entering?.id===j.id}
                 record={jokeUsedL[j.id]} draft={draft} draftMeaning={draftMeaning} uColor={uColor}
                 onStartCheck={() => startCheck("joke", j.id)}
