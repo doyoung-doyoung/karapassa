@@ -181,13 +181,32 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
       ? (existingLessons[targetKey]?.sentences||[]).map(s=>({...s,vocab:[...(s.vocab||[]).map(v=>({...v}))]}))
       : []
   );
+  // ── 기존 농담 편집 ──
+  const [editJokes, setEditJokes] = useState(() =>
+    mode === "existing" && targetKey
+      ? (existingLessons[targetKey]?.lessonJokes||[]).map(j=>({...j,vocab:[...(j.vocab||[]).map(v=>({...v}))]}))
+      : []
+  );
   useEffect(() => {
     if (mode === "existing" && targetKey) {
       setEditSents((existingLessons[targetKey]?.sentences||[]).map(s=>({...s,vocab:[...(s.vocab||[]).map(v=>({...v}))]})));
+      setEditJokes((existingLessons[targetKey]?.lessonJokes||[]).map(j=>({...j,vocab:[...(j.vocab||[]).map(v=>({...v}))]})));
     } else {
       setEditSents([]);
+      setEditJokes([]);
     }
   }, [targetKey, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const updateEditJoke = (ji, field, val) =>
+    setEditJokes(p => p.map((j, i) => i === ji ? {...j, [field]: val} : j));
+  const removeEditJoke = ji =>
+    setEditJokes(p => p.filter((_, i) => i !== ji));
+  const updateEditJokeVocab = (ji, vi, field, val) =>
+    setEditJokes(p => p.map((j, i) => i !== ji ? j : {...j, vocab: (j.vocab||[]).map((v, k) => k === vi ? {...v, [field]: val} : v)}));
+  const addEditJokeVocab = ji =>
+    setEditJokes(p => p.map((j, i) => i !== ji ? j : {...j, vocab: [...(j.vocab||[]), {thai:"",thaiScript:"",korean:""}]}));
+  const removeEditJokeVocab = (ji, vi) =>
+    setEditJokes(p => p.map((j, i) => i !== ji ? j : {...j, vocab: (j.vocab||[]).filter((_, k) => k !== vi)}));
 
   const updateExistSent = (si, field, val) =>
     setEditSents(p => p.map((s, i) => i === si ? {...s, [field]: val} : s));
@@ -209,6 +228,7 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
     if (mode === "new" && !validSents.length) return;
     onSave({ mode, key, topic: newTopic, sents: validSents,
       editSents: mode === "existing" ? editSents : undefined,
+      editJokes: mode === "existing" ? editJokes : undefined,
       customJokes: customJokes.filter(j => j.thai.trim()).map(j => ({
         ...j, vocab: j.vocab.filter(v => v.thai.trim())
       })) });
@@ -378,9 +398,70 @@ function LessonForm({ existingLessons, uColor, onSave, onClose }) {
         + 문장 추가
       </button>
 
+      {/* 기존 농담 수정 (existing 모드에서만 표시) */}
+      {mode === "existing" && editJokes.length > 0 && (
+        <div style={{marginBottom:"14px"}}>
+          <p style={{margin:"0 0 10px",fontSize:"12px",fontWeight:500,color:"var(--color-text-secondary)"}}>기존 농담 수정</p>
+          {editJokes.map((j, ji) => (
+            <div key={j.id||ji} style={{background:"#FAEEDA",border:"0.5px solid #EF9F27",borderRadius:"var(--border-radius-md)",padding:"12px",marginBottom:"8px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+                <span style={{fontSize:"12px",fontWeight:500,color:"#854F0B",display:"flex",alignItems:"center",gap:"5px"}}>
+                  <span style={{background:"#D85A30",color:"#fff",fontSize:"10px",padding:"1px 6px",borderRadius:"10px"}}>농담</span>
+                  {ji + 1}
+                </span>
+                <button onClick={() => removeEditJoke(ji)} style={{background:"none",border:"none",cursor:"pointer",color:"#C0392B",fontSize:"12px",padding:"2px 6px"}}>× 농담 삭제</button>
+              </div>
+              <div style={{marginBottom:"6px"}}>
+                <label style={{display:"block",fontSize:"11px",color:"#854F0B",marginBottom:"3px",fontWeight:500}}>태국어 (한글 발음)</label>
+                <input value={j.thai||""} onChange={e => updateEditJoke(ji,"thai",e.target.value)}
+                  style={{width:"100%",padding:"8px 10px",border:`0.5px solid ${j.thai?"#EF9F27":"#D8BF90"}`,borderRadius:"var(--border-radius-md)",fontSize:"14px",boxSizing:"border-box",outline:"none",background:"#fff",color:"#633806",fontWeight:j.thai?500:400}} />
+              </div>
+              <div style={{marginBottom:"6px"}}>
+                <label style={{display:"block",fontSize:"11px",color:"#1A936F",marginBottom:"3px",fontWeight:500}}>태국 문자 (선택사항)</label>
+                <input value={j.thaiScript||""} onChange={e => updateEditJoke(ji,"thaiScript",e.target.value)} placeholder="예: วันนี้สวยมากครับ"
+                  style={{width:"100%",padding:"8px 10px",border:`0.5px solid ${j.thaiScript?"#1A936F":"#D8BF90"}`,borderRadius:"var(--border-radius-md)",fontSize:"14px",boxSizing:"border-box",outline:"none",background:"#fff",color:"#1A936F",fontWeight:j.thaiScript?500:400}} />
+              </div>
+              <div style={{marginBottom:"6px"}}>
+                <label style={{display:"block",fontSize:"11px",color:"#854F0B",marginBottom:"3px",fontWeight:500}}>뜻 (한국어)</label>
+                <input value={j.korean||""} onChange={e => updateEditJoke(ji,"korean",e.target.value)}
+                  style={{width:"100%",padding:"8px 10px",border:"0.5px solid #D8BF90",borderRadius:"var(--border-radius-md)",fontSize:"13px",boxSizing:"border-box",outline:"none",background:"#fff"}} />
+              </div>
+              <div style={{marginBottom:"6px"}}>
+                <label style={{display:"block",fontSize:"11px",color:"#854F0B",marginBottom:"3px",fontWeight:500}}>메모</label>
+                <input value={j.note||""} onChange={e => updateEditJoke(ji,"note",e.target.value)}
+                  style={{width:"100%",padding:"8px 10px",border:"0.5px solid #D8BF90",borderRadius:"var(--border-radius-md)",fontSize:"13px",boxSizing:"border-box",outline:"none",background:"#fff"}} />
+              </div>
+              <div>
+                <label style={{display:"block",fontSize:"11px",color:"#854F0B",marginBottom:"6px",fontWeight:500}}>단어</label>
+                {(j.vocab||[]).map((v, vi) => (
+                  <div key={vi} style={{marginBottom:"8px"}}>
+                    <div style={{display:"flex",gap:"6px",marginBottom:"4px",alignItems:"center"}}>
+                      <input value={v.thai||""} onChange={e => updateEditJokeVocab(ji,vi,"thai",e.target.value)} placeholder="발음"
+                        style={{flex:1,padding:"6px 8px",border:`0.5px solid ${v.thai?"#EF9F27":"#D8BF90"}`,borderRadius:"var(--border-radius-md)",fontSize:"12px",outline:"none",color:"#633806",fontWeight:v.thai?500:400,background:"#fff"}} />
+                      <span style={{color:"#B08040",fontSize:"12px",flexShrink:0}}>→</span>
+                      <input value={v.korean||""} onChange={e => updateEditJokeVocab(ji,vi,"korean",e.target.value)} placeholder="뜻"
+                        style={{flex:1,padding:"6px 8px",border:"0.5px solid #D8BF90",borderRadius:"var(--border-radius-md)",fontSize:"12px",outline:"none",background:"#fff"}} />
+                      {(j.vocab||[]).length > 1 && (
+                        <button onClick={() => removeEditJokeVocab(ji,vi)} style={{background:"none",border:"none",cursor:"pointer",color:"#B08040",fontSize:"16px",padding:"0 2px",flexShrink:0,lineHeight:1}}>×</button>
+                      )}
+                    </div>
+                    <input value={v.thaiScript||""} onChange={e => updateEditJokeVocab(ji,vi,"thaiScript",e.target.value)} placeholder="태국 문자 (예: กิน)"
+                      style={{width:"100%",padding:"5px 8px",border:`0.5px solid ${v.thaiScript?"#1A936F":"#D8BF90"}`,borderRadius:"var(--border-radius-md)",fontSize:"12px",outline:"none",color:"#1A936F",fontWeight:v.thaiScript?500:400,background:"#fff",boxSizing:"border-box"}} />
+                  </div>
+                ))}
+                <button onClick={() => addEditJokeVocab(ji)}
+                  style={{width:"100%",background:"none",border:"0.5px dashed #EF9F27",borderRadius:"var(--border-radius-md)",padding:"5px",fontSize:"11px",cursor:"pointer",color:"#854F0B",marginTop:"2px"}}>
+                  + 단어 추가
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* 농담 추가 */}
       <div style={{marginBottom:"14px"}}>
-        <p style={{margin:"0 0 10px",fontSize:"12px",fontWeight:500,color:"var(--color-text-secondary)"}}>농담 추가 (선택사항)</p>
+        <p style={{margin:"0 0 10px",fontSize:"12px",fontWeight:500,color:"var(--color-text-secondary)"}}>{mode === "existing" ? "새 농담 추가 (선택사항)" : "농담 추가 (선택사항)"}</p>
         {customJokes.map((j, ji) => (
           <div key={ji} style={{background:"#FAEEDA",border:"0.5px solid #EF9F27",borderRadius:"var(--border-radius-md)",padding:"12px",marginBottom:"8px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
@@ -659,7 +740,7 @@ export default function ThaiApp() {
   };
 
   // ── Lesson save ──
-  const handleLessonSave = ({mode, key, topic, sents, customJokes, editSents}) => {
+  const handleLessonSave = ({mode, key, topic, sents, customJokes, editSents, editJokes}) => {
     const newLessonJokes = (customJokes||[]).filter(j => j.thai.trim()).map((j, i) => ({
       id: `lj_${key}_${Date.now()}_${i}`,
       thai: j.thai.trim(), thaiScript: j.thaiScript?.trim()||"", korean: j.korean.trim(), note: j.note?.trim()||"",
@@ -671,12 +752,14 @@ export default function ThaiApp() {
     } else {
       setLessons(p => {
         const existing = p[key];
-        const mergedLessonJokes = [...(existing.lessonJokes||[]), ...newLessonJokes];
-        // 기존 문장은 editSents로 교체 (단어 수정 반영), 새 문장은 뒤에 추가
+        // 기존 농담은 editJokes로 교체(수정/삭제 반영), 새 농담은 뒤에 추가
+        const updatedJokes = editJokes !== undefined
+          ? [...editJokes, ...newLessonJokes]
+          : [...(existing.lessonJokes||[]), ...newLessonJokes];
         const updatedExisting = editSents
           ? editSents.map(s => ({...s, vocab: (s.vocab||[]).filter(v => v.thai.trim())}))
           : existing.sentences;
-        return {...p, [key]: {...existing, sentences:[...updatedExisting, ...sents], lessonJokes:mergedLessonJokes}};
+        return {...p, [key]: {...existing, sentences:[...updatedExisting, ...sents], lessonJokes:updatedJokes}};
       });
       setLessonKey(key);
     }
